@@ -60,39 +60,44 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 async function getUnitData(unitSlug: string) {
-    // Try to fetch from Supabase if configured
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    if (supabaseUrl && !supabaseUrl.includes('SEU_PROJETO')) {
-        try {
-            const { createClient } = await import('@/lib/supabase/server')
-            const supabase = await createClient()
+    try {
+        const { createClient } = await import('@/lib/supabase/server')
+        const supabase = await createClient()
 
-            const { data: unit } = await supabase
-                .from('units')
-                .select('*')
-                .eq('slug', unitSlug)
-                .eq('is_active', true)
-                .single()
+        const { data: unit, error: unitErr } = await supabase
+            .from('units')
+            .select('*')
+            .eq('slug', unitSlug)
+            .eq('is_active', true)
+            .single()
 
-            if (unit) {
-                const { data: environments } = await supabase
-                    .from('environments')
-                    .select('id, name, capacity')
-                    .eq('unit_id', unit.id)
-                    .eq('is_active', true)
-                    .order('name')
-
-                return { unit, environments: environments || DEFAULT_ENVIRONMENTS }
-            }
-        } catch {
-            // Fall through to static data
+        if (unitErr || !unit) {
+            console.error('Unit fetch error:', unitErr?.message)
+            return null
         }
-    }
 
-    // Fallback to static data
-    const unit = UNIT_DATA[unitSlug]
-    if (!unit) return null
-    return { unit, environments: DEFAULT_ENVIRONMENTS }
+        // Try both column names (capacity or max_capacity) for compatibility
+        let environments: { id: string; name: string; capacity: number }[] = []
+        const { data: envs } = await supabase
+            .from('environments')
+            .select('id, name, capacity, max_capacity')
+            .eq('unit_id', unit.id)
+            .eq('is_active', true)
+            .order('name')
+
+        if (envs && envs.length > 0) {
+            environments = envs.map((e: Record<string, unknown>) => ({
+                id: e.id as string,
+                name: e.name as string,
+                capacity: (e.max_capacity ?? e.capacity ?? 50) as number,
+            }))
+        }
+
+        return { unit, environments: environments.length > 0 ? environments : DEFAULT_ENVIRONMENTS }
+    } catch (err) {
+        console.error('getUnitData error:', err)
+        return null
+    }
 }
 
 export default async function ReservarPage({ params }: Props) {

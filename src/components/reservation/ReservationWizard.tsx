@@ -379,7 +379,7 @@ function Step3({ state, onChange }: { state: WizardState; onChange: (k: keyof Wi
     return (
         <div>
             <DarkInput icon={User} label="Nome completo" placeholder="Ex: Lucas Villela" value={state.name} onChange={(e: any) => onChange('name', e.target.value)} />
-            <DarkInput icon={Phone} label="WhatsApp (Para Confirmação Mágica)" placeholder="(21) 90000-0000" type="tel" value={state.phone} onChange={(e: any) => onChange('phone', formatPhone(e.target.value))} />
+            <DarkInput icon={Phone} label="WhatsApp" placeholder="(21) 90000-0000" type="tel" value={state.phone} onChange={(e: any) => onChange('phone', formatPhone(e.target.value))} />
             <DarkInput icon={Mail} label="E-mail (Para Notinha Fiscal, opcional)" type="email" placeholder="lucas@apple.com" value={state.email} onChange={(e: any) => onChange('email', e.target.value)} />
 
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', marginTop: '4px' }}>
@@ -424,7 +424,7 @@ function Step4({ code, phone }: { code: string, phone: string }) {
             </motion.div>
 
             <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', marginBottom: '8px' }}>Tudo pronto!</h2>
-            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)', marginBottom: '32px' }}>A magia aconteceu. Sua reserva está confirmada.</p>
+            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)', marginBottom: '32px' }}>Sua reserva está confirmada!</p>
 
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: '32px' }}>
                 <p style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', marginBottom: '12px' }}>Seu código exclusivo</p>
@@ -482,7 +482,7 @@ export default function ReservationWizard({ unit, environments }: Props) {
             setConfirmCode(data.confirmation_code || 'FH-' + Math.floor(Math.random() * 9000 + 1000))
             paginate(1)
         } catch (err: unknown) {
-            alert('Não foi possível realizar a mágica :( ' + (err as Error).message)
+            alert('Não foi possível finalizar a reserva. ' + (err as Error).message)
         } finally {
             setLoading(false)
         }
@@ -552,7 +552,7 @@ export default function ReservationWizard({ unit, environments }: Props) {
                         >
                             {loading ? <Loader2 className="animate-spin" size={24} /> : (
                                 <>
-                                    {step === 3 ? 'Finalizar Mágica' : 'Continuar'}
+                                    {step === 3 ? 'Finalizar Reserva' : 'Continuar'}
                                     <ArrowRight size={20} />
                                 </>
                             )}
