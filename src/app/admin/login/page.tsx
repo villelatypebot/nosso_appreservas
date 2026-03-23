@@ -68,7 +68,16 @@ export default function AdminLoginPage() {
                 </div>
 
                 {/* Card */}
-                <div className="fh-card" style={{ padding: '32px', boxShadow: '0 8px 40px rgba(244,121,32,.12)' }}>
+                <div
+                    className="fh-card"
+                    style={{
+                        padding: '32px',
+                        boxShadow: '0 8px 40px rgba(244,121,32,.12)',
+                        background: 'rgba(255,255,255,0.72)',
+                        border: '1px solid rgba(244,121,32,0.12)',
+                        color: '#1A1008',
+                    }}
+                >
                     <button
                         className="fh-btn fh-btn-primary fh-btn-lg fh-btn-full"
                         type="button"
@@ -81,7 +90,7 @@ export default function AdminLoginPage() {
 
                     <div style={{
                         fontSize: '12px',
-                        color: 'var(--text-muted)',
+                        color: '#8B6B4A',
                         textAlign: 'center',
                         marginBottom: '18px',
                     }}>
@@ -89,7 +98,7 @@ export default function AdminLoginPage() {
                     </div>
                     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                         <div>
-                            <label className="fh-label">E-mail</label>
+                            <label className="fh-label" style={{ color: '#A07850' }}>E-mail</label>
                             <input
                                 className="fh-input"
                                 type="email"
@@ -98,11 +107,16 @@ export default function AdminLoginPage() {
                                 onChange={e => setEmail(e.target.value)}
                                 required
                                 autoComplete="email"
+                                style={{
+                                    background: 'rgba(255,255,255,0.92)',
+                                    border: '1px solid rgba(196,94,10,0.18)',
+                                    color: '#1A1008',
+                                }}
                             />
                         </div>
 
                         <div>
-                            <label className="fh-label">Senha</label>
+                            <label className="fh-label" style={{ color: '#A07850' }}>Senha</label>
                             <div style={{ position: 'relative' }}>
                                 <input
                                     className="fh-input"
@@ -111,7 +125,12 @@ export default function AdminLoginPage() {
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
                                     required
-                                    style={{ paddingRight: '44px' }}
+                                    style={{
+                                        paddingRight: '44px',
+                                        background: 'rgba(255,255,255,0.92)',
+                                        border: '1px solid rgba(196,94,10,0.18)',
+                                        color: '#1A1008',
+                                    }}
                                     autoComplete="current-password"
                                 />
                                 <button
@@ -119,7 +138,7 @@ export default function AdminLoginPage() {
                                     onClick={() => setShowPass(s => !s)}
                                     style={{
                                         position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                                        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
+                                        background: 'none', border: 'none', cursor: 'pointer', color: '#A07850',
                                         display: 'flex', alignItems: 'center',
                                     }}
                                 >
