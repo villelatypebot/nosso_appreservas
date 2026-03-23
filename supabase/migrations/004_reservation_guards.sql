@@ -69,8 +69,8 @@ BEGIN
   v_requested_minutes := EXTRACT(HOUR FROM p_reservation_time) * 60 + EXTRACT(MINUTE FROM p_reservation_time);
 
   SELECT * INTO v_rules
-  FROM reservation_rules
-  WHERE unit_id = p_unit_id
+  FROM reservation_rules AS rr
+  WHERE rr.unit_id = p_unit_id
   LIMIT 1;
 
   IF FOUND THEN
@@ -93,13 +93,13 @@ BEGIN
 
   SELECT *
     INTO v_slot
-  FROM time_slots
-  WHERE unit_id = p_unit_id
-    AND is_active = true
-    AND day_of_week = EXTRACT(DOW FROM p_reservation_date)::INT
-    AND open_time <= p_reservation_time
-    AND close_time > p_reservation_time
-  ORDER BY open_time DESC
+  FROM time_slots AS ts
+  WHERE ts.unit_id = p_unit_id
+    AND ts.is_active = true
+    AND ts.day_of_week = EXTRACT(DOW FROM p_reservation_date)::INT
+    AND ts.open_time <= p_reservation_time
+    AND ts.close_time > p_reservation_time
+  ORDER BY ts.open_time DESC
   LIMIT 1;
 
   IF NOT FOUND THEN
@@ -118,9 +118,9 @@ BEGIN
 
   FOR v_block IN
     SELECT start_time, end_time
-    FROM date_blocks
-    WHERE unit_id = p_unit_id
-      AND block_date = p_reservation_date
+    FROM date_blocks AS db
+    WHERE db.unit_id = p_unit_id
+      AND db.block_date = p_reservation_date
   LOOP
     IF (v_block.start_time IS NULL AND v_block.end_time IS NULL)
       OR (v_block.start_time IS NULL AND v_requested_minutes < (EXTRACT(HOUR FROM v_block.end_time) * 60 + EXTRACT(MINUTE FROM v_block.end_time)))
@@ -138,10 +138,10 @@ BEGIN
   IF p_environment_id IS NOT NULL THEN
     SELECT max_capacity
       INTO v_environment_capacity
-    FROM environments
-    WHERE id = p_environment_id
-      AND unit_id = p_unit_id
-      AND is_active = true
+    FROM environments AS env
+    WHERE env.id = p_environment_id
+      AND env.unit_id = p_unit_id
+      AND env.is_active = true
     LIMIT 1;
 
     IF v_environment_capacity IS NULL THEN
@@ -153,43 +153,43 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT COALESCE(SUM(pax), 0)
+  SELECT COALESCE(SUM(r.pax), 0)
     INTO v_reserved_pax
-  FROM reservations
-  WHERE unit_id = p_unit_id
-    AND reservation_date = p_reservation_date
-    AND reservation_time = p_reservation_time
-    AND status IN ('pending', 'confirmed', 'seated');
+  FROM reservations AS r
+  WHERE r.unit_id = p_unit_id
+    AND r.reservation_date = p_reservation_date
+    AND r.reservation_time = p_reservation_time
+    AND r.status IN ('pending', 'confirmed', 'seated');
 
   IF v_reserved_pax + p_pax > v_slot.max_pax_per_slot THEN
     RAISE EXCEPTION 'Esse horario acabou de lotar. Escolha outro horario.';
   END IF;
 
   IF p_environment_id IS NOT NULL THEN
-    SELECT COALESCE(SUM(pax), 0)
+    SELECT COALESCE(SUM(r.pax), 0)
       INTO v_reserved_env_pax
-    FROM reservations
-    WHERE unit_id = p_unit_id
-      AND environment_id = p_environment_id
-      AND reservation_date = p_reservation_date
-      AND reservation_time = p_reservation_time
-      AND status IN ('pending', 'confirmed', 'seated');
+    FROM reservations AS r
+    WHERE r.unit_id = p_unit_id
+      AND r.environment_id = p_environment_id
+      AND r.reservation_date = p_reservation_date
+      AND r.reservation_time = p_reservation_time
+      AND r.status IN ('pending', 'confirmed', 'seated');
 
     IF v_reserved_env_pax + p_pax > v_environment_capacity THEN
       RAISE EXCEPTION 'Esse ambiente nao tem mais disponibilidade para esse horario.';
     END IF;
   END IF;
 
-  INSERT INTO customers (name, email, phone)
+  INSERT INTO customers AS c (name, email, phone)
   VALUES (p_name, NULLIF(TRIM(p_email), ''), p_phone)
   ON CONFLICT (phone)
   DO UPDATE SET
     name = EXCLUDED.name,
-    email = COALESCE(EXCLUDED.email, customers.email)
-  RETURNING customers.id INTO v_customer_id;
+    email = COALESCE(EXCLUDED.email, c.email)
+  RETURNING c.id INTO v_customer_id;
 
   RETURN QUERY
-  INSERT INTO reservations (
+  INSERT INTO reservations AS r (
     unit_id,
     environment_id,
     customer_id,
@@ -213,7 +213,7 @@ BEGIN
     'online',
     jsonb_strip_nulls(jsonb_build_object('occasion', NULLIF(TRIM(p_occasion), '')))
   )
-  RETURNING reservations.id, reservations.confirmation_code, reservations.reservation_date, reservations.reservation_time, reservations.pax, reservations.status;
+  RETURNING r.id, r.confirmation_code, r.reservation_date, r.reservation_time, r.pax, r.status;
 END;
 $$;
 
@@ -285,8 +285,8 @@ BEGIN
   v_requested_minutes := EXTRACT(HOUR FROM v_new_time) * 60 + EXTRACT(MINUTE FROM v_new_time);
 
   SELECT * INTO v_rules
-  FROM reservation_rules
-  WHERE unit_id = v_existing.unit_id
+  FROM reservation_rules AS rr
+  WHERE rr.unit_id = v_existing.unit_id
   LIMIT 1;
 
   IF FOUND THEN
@@ -309,13 +309,13 @@ BEGIN
 
   SELECT *
     INTO v_slot
-  FROM time_slots
-  WHERE unit_id = v_existing.unit_id
-    AND is_active = true
-    AND day_of_week = EXTRACT(DOW FROM v_new_date)::INT
-    AND open_time <= v_new_time
-    AND close_time > v_new_time
-  ORDER BY open_time DESC
+  FROM time_slots AS ts
+  WHERE ts.unit_id = v_existing.unit_id
+    AND ts.is_active = true
+    AND ts.day_of_week = EXTRACT(DOW FROM v_new_date)::INT
+    AND ts.open_time <= v_new_time
+    AND ts.close_time > v_new_time
+  ORDER BY ts.open_time DESC
   LIMIT 1;
 
   IF NOT FOUND THEN
@@ -334,9 +334,9 @@ BEGIN
 
   FOR v_block IN
     SELECT start_time, end_time
-    FROM date_blocks
-    WHERE unit_id = v_existing.unit_id
-      AND block_date = v_new_date
+    FROM date_blocks AS db
+    WHERE db.unit_id = v_existing.unit_id
+      AND db.block_date = v_new_date
   LOOP
     IF (v_block.start_time IS NULL AND v_block.end_time IS NULL)
       OR (v_block.start_time IS NULL AND v_requested_minutes < (EXTRACT(HOUR FROM v_block.end_time) * 60 + EXTRACT(MINUTE FROM v_block.end_time)))
@@ -354,10 +354,10 @@ BEGIN
   IF v_new_environment IS NOT NULL THEN
     SELECT max_capacity
       INTO v_environment_capacity
-    FROM environments
-    WHERE id = v_new_environment
-      AND unit_id = v_existing.unit_id
-      AND is_active = true
+    FROM environments AS env
+    WHERE env.id = v_new_environment
+      AND env.unit_id = v_existing.unit_id
+      AND env.is_active = true
     LIMIT 1;
 
     IF v_environment_capacity IS NULL THEN
@@ -369,29 +369,29 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT COALESCE(SUM(pax), 0)
+  SELECT COALESCE(SUM(r.pax), 0)
     INTO v_reserved_pax
-  FROM reservations
-  WHERE unit_id = v_existing.unit_id
-    AND reservation_date = v_new_date
-    AND reservation_time = v_new_time
-    AND id <> v_existing.id
-    AND status IN ('pending', 'confirmed', 'seated');
+  FROM reservations AS r
+  WHERE r.unit_id = v_existing.unit_id
+    AND r.reservation_date = v_new_date
+    AND r.reservation_time = v_new_time
+    AND r.id <> v_existing.id
+    AND r.status IN ('pending', 'confirmed', 'seated');
 
   IF v_reserved_pax + v_new_pax > v_slot.max_pax_per_slot THEN
     RAISE EXCEPTION 'Esse horario acabou de lotar. Escolha outro horario.';
   END IF;
 
   IF v_new_environment IS NOT NULL THEN
-    SELECT COALESCE(SUM(pax), 0)
+    SELECT COALESCE(SUM(r.pax), 0)
       INTO v_reserved_env_pax
-    FROM reservations
-    WHERE unit_id = v_existing.unit_id
-      AND environment_id = v_new_environment
-      AND reservation_date = v_new_date
-      AND reservation_time = v_new_time
-      AND id <> v_existing.id
-      AND status IN ('pending', 'confirmed', 'seated');
+    FROM reservations AS r
+    WHERE r.unit_id = v_existing.unit_id
+      AND r.environment_id = v_new_environment
+      AND r.reservation_date = v_new_date
+      AND r.reservation_time = v_new_time
+      AND r.id <> v_existing.id
+      AND r.status IN ('pending', 'confirmed', 'seated');
 
     IF v_reserved_env_pax + v_new_pax > v_environment_capacity THEN
       RAISE EXCEPTION 'Esse ambiente nao tem mais disponibilidade para esse horario.';
@@ -399,14 +399,14 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  UPDATE reservations
+  UPDATE reservations AS r
   SET
     pax = v_new_pax,
     reservation_date = v_new_date,
     reservation_time = v_new_time,
     environment_id = v_new_environment,
     updated_at = now()
-  WHERE id = v_existing.id
-  RETURNING reservations.id, reservations.reservation_date, reservations.reservation_time, reservations.pax, reservations.status, reservations.confirmation_code;
+  WHERE r.id = v_existing.id
+  RETURNING r.id, r.reservation_date, r.reservation_time, r.pax, r.status, r.confirmation_code;
 END;
 $$;

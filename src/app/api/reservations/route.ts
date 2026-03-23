@@ -26,7 +26,10 @@ function getAdminClient() {
 
 function shouldFallbackToAppValidation(error: { code?: string; message?: string } | null) {
     if (!error) return false
-    return error.code === 'PGRST202' || error.message?.includes('create_reservation_safely') || false
+    return error.code === 'PGRST202'
+        || error.message?.includes('create_reservation_safely')
+        || error.message?.includes('is ambiguous')
+        || false
 }
 
 async function createReservationFallback(
@@ -121,7 +124,7 @@ export async function POST(request: Request) {
 
         if (rpcError) {
             if (shouldFallbackToAppValidation(rpcError)) {
-                console.warn('[Reservations] RPC create_reservation_safely not found. Falling back to app-side validation.')
+                console.warn('[Reservations] RPC create_reservation_safely unavailable or invalid. Falling back to app-side validation.')
                 reservation = await createReservationFallback(supabase, {
                     unitId,
                     environmentId: environmentId || null,

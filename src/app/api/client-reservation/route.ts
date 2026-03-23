@@ -21,7 +21,10 @@ function getAdminClient() {
 
 function shouldFallbackToAppValidation(error: { code?: string; message?: string } | null) {
     if (!error) return false
-    return error.code === 'PGRST202' || error.message?.includes('update_reservation_safely') || false
+    return error.code === 'PGRST202'
+        || error.message?.includes('update_reservation_safely')
+        || error.message?.includes('is ambiguous')
+        || false
 }
 
 // GET: Recupera os dados da reserva usando APENAS o código de confirmação.
