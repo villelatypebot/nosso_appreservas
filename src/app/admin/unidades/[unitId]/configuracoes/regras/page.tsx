@@ -96,7 +96,7 @@ export default function RegrasPage() {
     }
 
     return (
-        <div style={{ padding: '32px', maxWidth: '800px' }}>
+        <div className="admin-page-shell narrow">
             <div style={{ marginBottom: '28px' }}>
                 <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
                     <Settings size={22} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
@@ -127,7 +127,7 @@ export default function RegrasPage() {
                     <Users size={16} color="var(--brand-orange)" />
                     Capacidade
                 </h2>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="admin-form-grid-2">
                     <div>
                         <label className="fh-label">Mínimo de pessoas por reserva</label>
                         <input
@@ -163,7 +163,7 @@ export default function RegrasPage() {
                     <Clock size={16} color="var(--brand-gold)" />
                     Tempo & Antecedência
                 </h2>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                <div className="admin-form-grid-3">
                     <div>
                         <label className="fh-label">Antecedência mínima (horas)</label>
                         <input
@@ -223,11 +223,10 @@ export default function RegrasPage() {
             </div>
 
             {/* Info box */}
-            <div style={{
-                padding: '16px', marginBottom: '20px',
+            <div className="admin-info-box" style={{
+                marginBottom: '20px',
                 background: 'rgba(201,168,76,0.06)',
                 border: '1px solid rgba(201,168,76,0.2)',
-                borderRadius: 'var(--radius-md)',
                 fontSize: '12px', color: 'var(--text-secondary)',
             }}>
                 <strong style={{ color: 'var(--brand-gold)' }}>💡 Como funciona o bloqueio de lotação:</strong>

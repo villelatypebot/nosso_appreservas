@@ -131,16 +131,16 @@ export default function UsuariosPage() {
     }
 
     return (
-        <div style={{ padding: '32px', maxWidth: '900px' }}>
+        <div className="admin-page-shell medium">
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+            <div className="admin-page-header">
                 <div>
                     <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Gerenciar Usuários</h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
                         Crie e gerencie os acessos ao painel administrativo
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="admin-header-actions">
                     <button className="fh-btn fh-btn-ghost fh-btn-sm" onClick={loadUsers}>
                         <RefreshCw size={14} />
                     </button>
@@ -200,7 +200,7 @@ export default function UsuariosPage() {
                         </button>
                     </div>
 
-                    <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <form onSubmit={handleCreate} className="admin-form-grid-2">
                         <div>
                             <label className="fh-label">
                                 <User size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
@@ -258,7 +258,7 @@ export default function UsuariosPage() {
                                 <option value="viewer">👁️ Visualizador — Somente leitura</option>
                             </select>
                         </div>
-                        <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+                        <div className="admin-form-actions" style={{ gridColumn: '1 / -1', justifyContent: 'flex-end', marginTop: '8px' }}>
                             <button
                                 type="button"
                                 className="fh-btn fh-btn-ghost fh-btn-sm"
@@ -283,7 +283,7 @@ export default function UsuariosPage() {
             )}
 
             {/* Users Table */}
-            <div className="fh-card" style={{ padding: 0, overflowX: 'auto' }}>
+            <div className="fh-card admin-table-shell">
                 {loading ? (
                     <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', display: 'block', margin: '0 auto 12px' }} />
@@ -296,49 +296,121 @@ export default function UsuariosPage() {
                         <p style={{ fontSize: '12px', marginTop: '4px' }}>Clique em &quot;Novo Usuário&quot; para começar.</p>
                     </div>
                 ) : (
-                    <table className="fh-table">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Permissão</th>
-                                <th>Criado em</th>
-                                <th style={{ textAlign: 'right' }}>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map((user) => (
-                                <tr key={user.id}>
-                                    <td>
-                                        {editingId === user.id ? (
-                                            <input
-                                                className="fh-input"
-                                                value={editName}
-                                                onChange={e => setEditName(e.target.value)}
-                                                style={{ padding: '4px 8px', fontSize: '13px' }}
-                                            />
-                                        ) : (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{
-                                                    width: '32px', height: '32px', borderRadius: '50%',
-                                                    background: user.role === 'admin'
-                                                        ? 'linear-gradient(135deg, #F47920, #C45E0A)'
-                                                        : 'linear-gradient(135deg, #5B8DEF, #3B6FCF)',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
-                                                }}>
-                                                    {user.name.charAt(0).toUpperCase()}
+                    <>
+                        <table className="fh-table admin-table-desktop">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Permissão</th>
+                                    <th>Criado em</th>
+                                    <th style={{ textAlign: 'right' }}>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {users.map((user) => (
+                                    <tr key={user.id}>
+                                        <td>
+                                            {editingId === user.id ? (
+                                                <input
+                                                    className="fh-input"
+                                                    value={editName}
+                                                    onChange={e => setEditName(e.target.value)}
+                                                    style={{ padding: '4px 8px', fontSize: '13px' }}
+                                                />
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{
+                                                        width: '32px', height: '32px', borderRadius: '50%',
+                                                        background: user.role === 'admin'
+                                                            ? 'linear-gradient(135deg, #F47920, #C45E0A)'
+                                                            : 'linear-gradient(135deg, #5B8DEF, #3B6FCF)',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
+                                                    }}>
+                                                        {user.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <span style={{ fontWeight: 500, fontSize: '13px' }}>{user.name}</span>
                                                 </div>
-                                                <span style={{ fontWeight: 500, fontSize: '13px' }}>{user.name}</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {editingId === user.id ? (
+                                                <select
+                                                    className="fh-input"
+                                                    value={editRole}
+                                                    onChange={e => setEditRole(e.target.value)}
+                                                    style={{ padding: '4px 8px', fontSize: '13px', cursor: 'pointer', width: '180px' }}
+                                                >
+                                                    <option value="admin">🔑 Admin</option>
+                                                    <option value="viewer">👁️ Visualizador</option>
+                                                </select>
+                                            ) : (
+                                                <span className={`fh-badge ${user.role === 'admin' ? 'badge-confirmed' : 'badge-pending'}`}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                    {user.role === 'admin' ? <Shield size={11} /> : <Eye size={11} />}
+                                                    {user.role === 'admin' ? 'Admin' : 'Visualizador'}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            {editingId === user.id ? (
+                                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        className="fh-btn fh-btn-sm fh-btn-outline"
+                                                        onClick={() => handleEditSave(user.id)}
+                                                        title="Salvar"
+                                                    >
+                                                        <Save size={12} /> Salvar
+                                                    </button>
+                                                    <button
+                                                        className="fh-btn fh-btn-sm fh-btn-ghost"
+                                                        onClick={() => setEditingId(null)}
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        className="fh-btn fh-btn-sm fh-btn-ghost"
+                                                        onClick={() => startEdit(user)}
+                                                        title="Editar"
+                                                    >
+                                                        <Edit2 size={12} />
+                                                    </button>
+                                                    <button
+                                                        className="fh-btn fh-btn-sm fh-btn-danger"
+                                                        onClick={() => handleDelete(user.id, user.name)}
+                                                        title="Excluir"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="admin-table-mobile">
+                            {users.map((user) => (
+                                <div key={user.id} className="admin-mobile-card">
+                                    <div className="admin-mobile-card-head">
+                                        <div>
+                                            <div className="admin-mobile-card-title">{user.name}</div>
+                                            <div className="admin-mobile-card-subtitle">
+                                                Criado em {new Date(user.created_at).toLocaleDateString('pt-BR')}
                                             </div>
-                                        )}
-                                    </td>
-                                    <td>
+                                        </div>
                                         {editingId === user.id ? (
                                             <select
                                                 className="fh-input"
                                                 value={editRole}
                                                 onChange={e => setEditRole(e.target.value)}
-                                                style={{ padding: '4px 8px', fontSize: '13px', cursor: 'pointer', width: '180px' }}
+                                                style={{ padding: '4px 8px', fontSize: '13px', cursor: 'pointer' }}
                                             >
                                                 <option value="admin">🔑 Admin</option>
                                                 <option value="viewer">👁️ Visualizador</option>
@@ -350,13 +422,18 @@ export default function UsuariosPage() {
                                                 {user.role === 'admin' ? 'Admin' : 'Visualizador'}
                                             </span>
                                         )}
-                                    </td>
-                                    <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
+                                    </div>
+                                    {editingId === user.id ? (
+                                        <input
+                                            className="fh-input"
+                                            value={editName}
+                                            onChange={e => setEditName(e.target.value)}
+                                            style={{ padding: '4px 8px', fontSize: '13px' }}
+                                        />
+                                    ) : null}
+                                    <div className="admin-mobile-card-actions">
                                         {editingId === user.id ? (
-                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                            <>
                                                 <button
                                                     className="fh-btn fh-btn-sm fh-btn-outline"
                                                     onClick={() => handleEditSave(user.id)}
@@ -368,51 +445,46 @@ export default function UsuariosPage() {
                                                     className="fh-btn fh-btn-sm fh-btn-ghost"
                                                     onClick={() => setEditingId(null)}
                                                 >
-                                                    <X size={12} />
+                                                    <X size={12} /> Cancelar
                                                 </button>
-                                            </div>
+                                            </>
                                         ) : (
-                                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                            <>
                                                 <button
                                                     className="fh-btn fh-btn-sm fh-btn-ghost"
                                                     onClick={() => startEdit(user)}
                                                     title="Editar"
                                                 >
-                                                    <Edit2 size={12} />
+                                                    <Edit2 size={12} /> Editar
                                                 </button>
                                                 <button
                                                     className="fh-btn fh-btn-sm fh-btn-danger"
                                                     onClick={() => handleDelete(user.id, user.name)}
                                                     title="Excluir"
                                                 >
-                                                    <Trash2 size={12} />
+                                                    <Trash2 size={12} /> Excluir
                                                 </button>
-                                            </div>
+                                            </>
                                         )}
-                                    </td>
-                                </tr>
+                                    </div>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </>
                 )}
             </div>
 
             {/* Legend */}
-            <div style={{
-                marginTop: '20px', padding: '16px',
-                background: 'var(--brand-surface-2)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--brand-border)',
-            }}>
+            <div className="admin-info-box">
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Permissões
                 </p>
-                <div style={{ display: 'flex', gap: '24px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div className="admin-inline-stack" style={{ fontSize: '12px', color: 'var(--text-secondary)', gap: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                         <Shield size={13} color="var(--color-success)" />
                         <strong style={{ color: '#fff' }}>Admin:</strong> Acesso total — pode criar, editar e excluir reservas, configurações e usuários
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                         <Eye size={13} color="#C9A84C" />
                         <strong style={{ color: '#fff' }}>Visualizador:</strong> Somente leitura — pode ver o painel e reservas, mas não alterá-las
                     </div>

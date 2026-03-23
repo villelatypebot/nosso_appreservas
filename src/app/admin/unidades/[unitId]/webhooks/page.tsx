@@ -103,9 +103,9 @@ export default function WebhooksPage() {
     }
 
     return (
-        <div style={{ padding: '32px', maxWidth: '1000px' }}>
+        <div className="admin-page-shell medium">
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div className="admin-page-header" style={{ marginBottom: '8px' }}>
                 <h1 style={{ fontSize: '26px' }}>Webhooks</h1>
                 <button className="fh-btn fh-btn-primary fh-btn-sm" onClick={() => setShowForm(s => !s)}>
                     <Plus size={14} /> Novo webhook
@@ -121,7 +121,7 @@ export default function WebhooksPage() {
                     <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-primary)' }}>
                         Novo webhook
                     </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                    <div className="admin-form-grid-2" style={{ marginBottom: '14px' }}>
                         <div>
                             <label className="fh-label">Nome</label>
                             <input className="fh-input" placeholder="Ex: CRM Principal" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -177,7 +177,7 @@ export default function WebhooksPage() {
                             ))}
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div className="admin-form-actions">
                         <button className="fh-btn fh-btn-ghost" onClick={() => setShowForm(false)}>Cancelar</button>
                         <button
                             className="fh-btn fh-btn-primary"
@@ -199,7 +199,7 @@ export default function WebhooksPage() {
                 <div className="fh-card" style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
                     <Activity size={32} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
                     <p>Nenhum webhook configurado ainda.</p>
-                    <p style={{ fontSize: '12px', marginTop: '4px' }}>Clique em "Novo webhook" para começar.</p>
+                    <p style={{ fontSize: '12px', marginTop: '4px' }}>Clique em &quot;Novo webhook&quot; para começar.</p>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
@@ -276,8 +276,8 @@ export default function WebhooksPage() {
                         <Clock size={16} color="var(--brand-gold)" />
                         Histórico de disparos
                     </h2>
-                    <div className="fh-card" style={{ padding: 0, overflow: 'hidden' }}>
-                        <table className="fh-table">
+                    <div className="fh-card admin-table-shell" style={{ overflow: 'hidden' }}>
+                        <table className="fh-table admin-table-desktop">
                             <thead>
                                 <tr>
                                     <th>Webhook</th>
@@ -313,6 +313,35 @@ export default function WebhooksPage() {
                                 ))}
                             </tbody>
                         </table>
+                        <div className="admin-table-mobile">
+                            {logs.map((log) => (
+                                <div key={log.id} className="admin-mobile-card">
+                                    <div className="admin-mobile-card-head">
+                                        <div>
+                                            <div className="admin-mobile-card-title">{log.webhooks?.name || log.webhook_id.substring(0, 8) + '…'}</div>
+                                            <div className="admin-mobile-card-subtitle">{new Date(log.triggered_at).toLocaleString('pt-BR')}</div>
+                                        </div>
+                                        <span className="fh-badge" style={{
+                                            background: log.response_status && log.response_status >= 200 && log.response_status < 300 ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
+                                            color: log.response_status && log.response_status >= 200 && log.response_status < 300 ? 'var(--color-success)' : 'var(--color-danger)',
+                                        }}>
+                                            {log.response_status || 'ERR'}
+                                        </span>
+                                    </div>
+                                    <div className="admin-mobile-field">
+                                        <span className="admin-mobile-label">Evento</span>
+                                        <div className="admin-mobile-value">
+                                            <span style={{
+                                                fontSize: '11px', fontFamily: 'monospace',
+                                                background: 'var(--brand-surface-3)',
+                                                padding: '2px 6px', borderRadius: '4px',
+                                                color: 'var(--brand-gold)',
+                                            }}>{log.event}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}

@@ -101,14 +101,14 @@ export default async function RelatoriosPage({ params }: Props) {
     }
 
     return (
-        <div style={{ padding: '32px', maxWidth: '1000px' }}>
+        <div className="admin-page-shell medium">
             <div style={{ marginBottom: '28px' }}>
                 <h1 style={{ fontSize: '26px', marginBottom: '4px' }}>Relatórios</h1>
                 <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Dados dos últimos 30 dias</p>
             </div>
 
             {/* KPI cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+            <div className="admin-stat-grid">
                 {[
                     { icon: <Calendar size={20} color="var(--brand-gold)" />, bg: 'rgba(201,168,76,0.1)', value: data.totalInPeriod, label: 'Total de reservas' },
                     { icon: <Users size={20} color="var(--color-info)" />, bg: 'var(--color-info-bg)', value: data.totalPax, label: 'Total de pessoas' },
@@ -123,46 +123,48 @@ export default async function RelatoriosPage({ params }: Props) {
                 ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', alignItems: 'start' }}>
+            <div className="admin-split-grid">
                 {/* Bar chart — last 7 days */}
                 <div className="fh-card">
                     <h2 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <BarChart3 size={16} color="var(--brand-gold)" />
                         Reservas nos últimos 7 dias
                     </h2>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '160px' }}>
-                        {days.map((day) => {
-                            const heightPct = day.confirmed / maxConfirmed
-                            return (
-                                <div key={day.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontSize: '11px', color: 'var(--brand-gold)', fontWeight: 700 }}>
-                                        {day.confirmed > 0 ? day.confirmed : ''}
-                                    </span>
-                                    <div style={{
-                                        width: '100%',
-                                        height: `${Math.max(4, heightPct * 120)}px`,
-                                        background: 'linear-gradient(180deg, var(--brand-gold-light), var(--brand-gold-dark))',
-                                        borderRadius: '6px 6px 0 0',
-                                        transition: 'height 0.5s ease',
-                                        position: 'relative',
-                                    }}>
-                                        {day.no_show > 0 && (
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: 0, left: 0, right: 0,
-                                                height: `${(day.no_show / Math.max(day.confirmed + day.no_show, 1)) * 100}%`,
-                                                background: 'var(--color-danger)',
-                                                borderRadius: '0 0 6px 6px',
-                                                opacity: 0.7,
-                                            }} />
-                                        )}
+                    <div className="admin-chart-scroll">
+                        <div className="admin-chart-inner" style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '160px' }}>
+                            {days.map((day) => {
+                                const heightPct = day.confirmed / maxConfirmed
+                                return (
+                                    <div key={day.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ fontSize: '11px', color: 'var(--brand-gold)', fontWeight: 700 }}>
+                                            {day.confirmed > 0 ? day.confirmed : ''}
+                                        </span>
+                                        <div style={{
+                                            width: '100%',
+                                            height: `${Math.max(4, heightPct * 120)}px`,
+                                            background: 'linear-gradient(180deg, var(--brand-gold-light), var(--brand-gold-dark))',
+                                            borderRadius: '6px 6px 0 0',
+                                            transition: 'height 0.5s ease',
+                                            position: 'relative',
+                                        }}>
+                                            {day.no_show > 0 && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: 0, left: 0, right: 0,
+                                                    height: `${(day.no_show / Math.max(day.confirmed + day.no_show, 1)) * 100}%`,
+                                                    background: 'var(--color-danger)',
+                                                    borderRadius: '0 0 6px 6px',
+                                                    opacity: 0.7,
+                                                }} />
+                                            )}
+                                        </div>
+                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center' }}>{day.label}</span>
                                     </div>
-                                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center' }}>{day.label}</span>
-                                </div>
-                            )
-                        })}
+                                )
+                            })}
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '11px' }}>
+                    <div className="admin-inline-stack" style={{ marginTop: '12px', fontSize: '11px', gap: '16px' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-muted)' }}>
                             <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'var(--brand-gold)', display: 'inline-block' }} />
                             Confirmadas

@@ -61,8 +61,8 @@ export default function HorariosPage() {
     }
 
     return (
-        <div style={{ padding: '32px', maxWidth: '800px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="admin-page-shell narrow">
+            <div className="admin-page-header" style={{ marginBottom: '8px' }}>
                 <h1 style={{ fontSize: '26px' }}>Horários de Funcionamento</h1>
                 <button className="fh-btn fh-btn-primary fh-btn-sm" onClick={() => setShowForm(s => !s)}>
                     <Plus size={14} /> Adicionar
@@ -76,7 +76,7 @@ export default function HorariosPage() {
             {showForm && (
                 <div className="fh-card animate-fade-in" style={{ marginBottom: '24px', borderColor: 'var(--brand-gold-dark)' }}>
                     <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '20px' }}>Novo horário</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+                    <div className="admin-stat-grid" style={{ marginBottom: '20px' }}>
                         <div>
                             <label className="fh-label">Dia da semana</label>
                             <select className="fh-input" value={form.day_of_week} onChange={e => setForm(f => ({ ...f, day_of_week: Number(e.target.value) }))}>
@@ -120,7 +120,7 @@ export default function HorariosPage() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div className="admin-form-actions">
                         <button className="fh-btn fh-btn-ghost" onClick={() => setShowForm(false)}>Cancelar</button>
                         <button className="fh-btn fh-btn-primary" onClick={save} disabled={saving === 'new'}>
                             {saving === 'new' ? <><Loader2 size={14} />Salvando...</> : <><Save size={14} />Salvar horário</>}
@@ -144,23 +144,21 @@ export default function HorariosPage() {
                     {[0, 1, 2, 3, 4, 5, 6].filter(d => byDay[d]).map(day => (
                         <div key={day} className="fh-card">
                             <div style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 marginBottom: '14px', paddingBottom: '12px', borderBottom: '1px solid var(--brand-border)',
-                            }}>
+                            }} className="admin-item-row">
                                 <h3 style={{ fontSize: '15px', fontWeight: 600 }}>{dayOfWeekLabel(day)}</h3>
                                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{byDay[day].length} configuração(ões)</span>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {byDay[day].map(slot => (
                                     <div key={slot.id} style={{
-                                        display: 'flex', alignItems: 'center', gap: '12px',
                                         padding: '10px 14px',
                                         background: 'var(--brand-surface-2)',
                                         borderRadius: 'var(--radius-md)',
                                         border: `1px solid ${slot.is_active ? 'var(--brand-border)' : 'transparent'}`,
                                         opacity: slot.is_active ? 1 : 0.5,
-                                    }}>
-                                        <div style={{ flex: 1, display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                                    }} className="admin-item-row">
+                                        <div className="admin-item-main" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
                                             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--brand-gold)' }}>
                                                 {formatTime(slot.open_time)} → {formatTime(slot.close_time)}
                                             </span>
@@ -171,7 +169,7 @@ export default function HorariosPage() {
                                                 Máx. {slot.max_pax_per_slot} pax/slot
                                             </span>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                        <div className="admin-item-actions">
                                             <button
                                                 className={`fh-btn fh-btn-sm ${slot.is_active ? 'fh-btn-ghost' : 'fh-btn-outline'}`}
                                                 onClick={() => toggleActive(slot)}

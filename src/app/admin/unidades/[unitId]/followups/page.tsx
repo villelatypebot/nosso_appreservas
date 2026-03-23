@@ -100,8 +100,8 @@ export default function FollowUpsPage() {
     }
 
     return (
-        <div style={{ padding: '32px', maxWidth: '900px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="admin-page-shell medium">
+            <div className="admin-page-header" style={{ marginBottom: '8px' }}>
                 <h1 style={{ fontSize: '26px' }}>Follow-ups & Lembretes</h1>
                 <button className="fh-btn fh-btn-primary fh-btn-sm" onClick={() => setShowForm(s => !s)}>
                     <Plus size={14} /> Nova regra
@@ -115,7 +115,7 @@ export default function FollowUpsPage() {
             {showForm && (
                 <div className="fh-card animate-fade-in" style={{ marginBottom: '24px', borderColor: 'var(--brand-gold-dark)' }}>
                     <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '20px' }}>Nova regra de follow-up</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                    <div className="admin-form-grid-2" style={{ marginBottom: '14px' }}>
                         <div>
                             <label className="fh-label">Nome da regra</label>
                             <input className="fh-input" placeholder="Ex: Lembrete 24h" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -198,7 +198,7 @@ export default function FollowUpsPage() {
                             style={{ resize: 'vertical' }}
                         />
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div className="admin-form-actions">
                         <button className="fh-btn fh-btn-ghost" onClick={() => setShowForm(false)}>Cancelar</button>
                         <button className="fh-btn fh-btn-primary" onClick={save} disabled={saving || !form.name}>
                             {saving ? <><Loader2 size={14} />Salvando...</> : 'Salvar regra'}
@@ -221,8 +221,7 @@ export default function FollowUpsPage() {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {rules.map((rule) => (
-                        <div key={rule.id} className="fh-card" style={{
-                            display: 'flex',
+                        <div key={rule.id} className="fh-card admin-item-row" style={{
                             gap: '14px',
                             padding: '16px 20px',
                             opacity: rule.is_active ? 1 : 0.6,
@@ -237,7 +236,7 @@ export default function FollowUpsPage() {
                             }}>
                                 {channelIcon(rule.channel)}
                             </div>
-                            <div style={{ flex: 1 }}>
+                            <div className="admin-item-main">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                                     <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{rule.name}</span>
                                     {!rule.is_active && <span className="fh-badge" style={{ background: 'rgba(100,100,100,0.12)', color: 'var(--text-muted)', fontSize: '10px' }}>Inativo</span>}
@@ -260,7 +259,7 @@ export default function FollowUpsPage() {
                                     {rule.message_template}
                                 </p>
                             </div>
-                            <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', flexShrink: 0 }}>
+                            <div className="admin-item-actions" style={{ alignItems: 'flex-start', flexShrink: 0 }}>
                                 <button
                                     className={`fh-btn fh-btn-sm ${rule.is_active ? 'fh-btn-ghost' : 'fh-btn-outline'}`}
                                     onClick={() => toggleActive(rule)}

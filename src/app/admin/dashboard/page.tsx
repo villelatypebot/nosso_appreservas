@@ -56,7 +56,7 @@ export default async function AdminDashboard() {
     const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 
     return (
-        <div style={{ padding: '40px 32px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div className="admin-page-shell wide">
             {/* Header */}
             <div className="animate-fade-in" style={{ marginBottom: '40px' }}>
                 <p style={{ fontSize: '14px', color: 'var(--brand-orange)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: '8px' }}>{today}</p>
@@ -64,7 +64,7 @@ export default async function AdminDashboard() {
             </div>
 
             {/* Metric cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+            <div className="admin-stat-grid">
                 {[
                     {
                         icon: <Calendar size={20} color="#C9A84C" />,
@@ -105,9 +105,9 @@ export default async function AdminDashboard() {
                 ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', alignItems: 'start' }}>
+            <div className="admin-split-grid">
                 {/* Recent reservations */}
-                <div className="fh-card" style={{ padding: '0' }}>
+                <div className="fh-card admin-table-shell">
                     <div style={{
                         padding: '18px 20px',
                         borderBottom: '1px solid var(--brand-border)',
@@ -117,7 +117,7 @@ export default async function AdminDashboard() {
                     }}>
                         <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>Reservas recentes</h2>
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
+                    <div className="admin-table-desktop" style={{ overflowX: 'auto' }}>
                         <table className="fh-table">
                             <thead>
                                 <tr>
@@ -160,6 +160,48 @@ export default async function AdminDashboard() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="admin-table-mobile">
+                        {recent.length === 0 ? (
+                            <div className="admin-mobile-card">
+                                <div className="admin-mobile-value" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    Nenhuma reserva ainda
+                                </div>
+                            </div>
+                        ) : recent.map((r: Record<string, unknown>) => {
+                            const customer = r.customers as { name: string; phone: string } | null
+                            const unit = r.units as { name: string } | null
+                            const sb = statusBadge(r.status as string)
+                            return (
+                                <div key={r.id as string} className="admin-mobile-card">
+                                    <div className="admin-mobile-card-head">
+                                        <div>
+                                            <div className="admin-mobile-card-title">{customer?.name || '—'}</div>
+                                            <div className="admin-mobile-card-subtitle">{r.confirmation_code as string}</div>
+                                        </div>
+                                        <span className={`fh-badge ${sb.cls}`}>{sb.label}</span>
+                                    </div>
+                                    <div className="admin-mobile-card-grid">
+                                        <div className="admin-mobile-field">
+                                            <span className="admin-mobile-label">Unidade</span>
+                                            <div className="admin-mobile-value">{unit?.name || '—'}</div>
+                                        </div>
+                                        <div className="admin-mobile-field">
+                                            <span className="admin-mobile-label">Pessoas</span>
+                                            <div className="admin-mobile-value">{r.pax as number}</div>
+                                        </div>
+                                        <div className="admin-mobile-field">
+                                            <span className="admin-mobile-label">Data</span>
+                                            <div className="admin-mobile-value">{formatDate(r.reservation_date as string)}</div>
+                                        </div>
+                                        <div className="admin-mobile-field">
+                                            <span className="admin-mobile-label">Hora</span>
+                                            <div className="admin-mobile-value">{String(r.reservation_time as string).substring(0, 5)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                 </div>
 

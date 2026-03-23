@@ -162,19 +162,12 @@ export default function PainelPage() {
   );
 
   return (
-    <div style={{ padding: "32px", maxWidth: "1200px", margin: "0 auto" }}>
+    <div className="admin-page-shell wide">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "28px",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
+        className="admin-page-header"
       >
         <div>
           <h1
@@ -200,7 +193,7 @@ export default function PainelPage() {
             Visão em tempo real
           </p>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div className="admin-header-actions">
           <div
             style={{
               display: "flex",
@@ -239,12 +232,7 @@ export default function PainelPage() {
 
       {/* Summary cards */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          gap: "16px",
-          marginBottom: "32px",
-        }}
+        className="admin-stat-grid"
       >
         <AnimatePresence>
           {[
@@ -298,16 +286,8 @@ export default function PainelPage() {
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: "4px",
-          marginBottom: "20px",
-          background: "var(--brand-surface)",
-          border: "1px solid var(--brand-border)",
-          borderRadius: "var(--radius-md)",
-          padding: "4px",
-          width: "fit-content",
-        }}
+        className="admin-tab-list"
+        style={{ marginBottom: "20px" }}
       >
         {(
           [
@@ -354,7 +334,7 @@ export default function PainelPage() {
           />
         </div>
       ) : tab === "reservas" ? (
-        <div className="fh-card" style={{ padding: 0 }}>
+        <div className="fh-card admin-table-shell">
           {reservations.length === 0 ? (
             <div
               style={{
@@ -366,19 +346,140 @@ export default function PainelPage() {
               Nenhuma reserva para {formatDate(date)}
             </div>
           ) : (
-            <table className="fh-table">
-              <thead>
-                <tr>
-                  <th>Horário</th>
-                  <th>Cliente</th>
-                  <th>Pax</th>
-                  <th>Ambiente</th>
-                  <th>Status</th>
-                  <th>Ações rápidas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reservations.map((r, i) => {
+            <>
+              <table className="fh-table admin-table-desktop">
+                <thead>
+                  <tr>
+                    <th>Horário</th>
+                    <th>Cliente</th>
+                    <th>Pax</th>
+                    <th>Ambiente</th>
+                    <th>Status</th>
+                    <th>Ações rápidas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((r, i) => {
+                    const customer = r.customers as
+                      | { name: string; phone: string }
+                      | undefined;
+                    const env = r.environments as
+                      | { name: string }
+                      | null
+                      | undefined;
+                    const isLoading = actionLoading === r.id;
+                    return (
+                      <motion.tr
+                        key={r.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: i * 0.05 }}
+                      >
+                        <td
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "15px",
+                            color: "var(--brand-orange-light)",
+                          }}
+                        >
+                          {String(r.reservation_time).substring(0, 5)}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: "#fff" }}>
+                            {customer?.name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "rgba(255,255,255,0.5)",
+                            }}
+                          >
+                            {customer?.phone}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              color: "var(--brand-orange)",
+                              fontFamily: "monospace",
+                              marginTop: "2px",
+                            }}
+                          >
+                            {r.confirmation_code}
+                          </div>
+                        </td>
+                        <td
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "16px",
+                            textAlign: "center",
+                            color: "#fff",
+                          }}
+                        >
+                          {r.pax}
+                        </td>
+                        <td
+                          style={{
+                            fontSize: "12px",
+                            color: "rgba(255,255,255,0.5)",
+                          }}
+                        >
+                          {env?.name || "—"}
+                        </td>
+                        <td>
+                          <span
+                            className={`fh-badge ${statusBadgeClass(r.status)}`}
+                          >
+                            {statusLabel(r.status)}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            {r.status === "pending" && (
+                              <button
+                                className="fh-btn fh-btn-sm fh-btn-outline"
+                                disabled={isLoading}
+                                onClick={() => updateStatus(r.id, "confirmed")}
+                              >
+                                Confirmar
+                              </button>
+                            )}
+                            {(r.status === "pending" ||
+                              r.status === "confirmed") && (
+                                <button
+                                  className="fh-btn fh-btn-sm"
+                                  disabled={isLoading}
+                                  onClick={() => updateStatus(r.id, "seated")}
+                                  style={{
+                                    background: "var(--color-info-bg)",
+                                    color: "var(--color-info)",
+                                    border: "1px solid rgba(91,141,239,0.25)",
+                                    fontSize: "12px",
+                                    padding: "5px 10px",
+                                    borderRadius: "var(--radius-sm)",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <Users size={12} /> Sentar
+                                </button>
+                              )}
+                            {r.status === "confirmed" && (
+                              <button
+                                className="fh-btn fh-btn-sm fh-btn-danger"
+                                disabled={isLoading}
+                                onClick={() => updateStatus(r.id, "no_show")}
+                              >
+                                <XCircle size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <div className="admin-table-mobile">
+                {reservations.map((r) => {
                   const customer = r.customers as
                     | { name: string; phone: string }
                     | undefined;
@@ -388,115 +489,85 @@ export default function PainelPage() {
                     | undefined;
                   const isLoading = actionLoading === r.id;
                   return (
-                    <motion.tr
-                      key={r.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.05 }}
-                    >
-                      <td
-                        style={{
-                          fontWeight: 700,
-                          fontSize: "15px",
-                          color: "var(--brand-orange-light)",
-                        }}
-                      >
-                        {String(r.reservation_time).substring(0, 5)}
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600, color: "#fff" }}>
-                          {customer?.name}
+                    <div key={r.id} className="admin-mobile-card">
+                      <div className="admin-mobile-card-head">
+                        <div>
+                          <div className="admin-mobile-card-title">
+                            {customer?.name || "Cliente"}
+                          </div>
+                          <div className="admin-mobile-card-subtitle">
+                            {r.confirmation_code}
+                          </div>
                         </div>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "rgba(255,255,255,0.5)",
-                          }}
-                        >
-                          {customer?.phone}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--brand-orange)",
-                            fontFamily: "monospace",
-                            marginTop: "2px",
-                          }}
-                        >
-                          {r.confirmation_code}
-                        </div>
-                      </td>
-                      <td
-                        style={{
-                          fontWeight: 700,
-                          fontSize: "16px",
-                          textAlign: "center",
-                          color: "#fff",
-                        }}
-                      >
-                        {r.pax}
-                      </td>
-                      <td
-                        style={{
-                          fontSize: "12px",
-                          color: "rgba(255,255,255,0.5)",
-                        }}
-                      >
-                        {env?.name || "—"}
-                      </td>
-                      <td>
-                        <span
-                          className={`fh-badge ${statusBadgeClass(r.status)}`}
-                        >
+                        <span className={`fh-badge ${statusBadgeClass(r.status)}`}>
                           {statusLabel(r.status)}
                         </span>
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: "6px" }}>
-                          {r.status === "pending" && (
-                            <button
-                              className="fh-btn fh-btn-sm fh-btn-outline"
-                              disabled={isLoading}
-                              onClick={() => updateStatus(r.id, "confirmed")}
-                            >
-                              Confirmar
-                            </button>
-                          )}
-                          {(r.status === "pending" ||
-                            r.status === "confirmed") && (
-                              <button
-                                className="fh-btn fh-btn-sm"
-                                disabled={isLoading}
-                                onClick={() => updateStatus(r.id, "seated")}
-                                style={{
-                                  background: "var(--color-info-bg)",
-                                  color: "var(--color-info)",
-                                  border: "1px solid rgba(91,141,239,0.25)",
-                                  fontSize: "12px",
-                                  padding: "5px 10px",
-                                  borderRadius: "var(--radius-sm)",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                <Users size={12} /> Sentar
-                              </button>
-                            )}
-                          {r.status === "confirmed" && (
-                            <button
-                              className="fh-btn fh-btn-sm fh-btn-danger"
-                              disabled={isLoading}
-                              onClick={() => updateStatus(r.id, "no_show")}
-                            >
-                              <XCircle size={12} />
-                            </button>
-                          )}
+                      </div>
+                      <div className="admin-mobile-card-grid">
+                        <div className="admin-mobile-field">
+                          <span className="admin-mobile-label">Horário</span>
+                          <div className="admin-mobile-value">
+                            {String(r.reservation_time).substring(0, 5)}
+                          </div>
                         </div>
-                      </td>
-                    </motion.tr>
+                        <div className="admin-mobile-field">
+                          <span className="admin-mobile-label">Pax</span>
+                          <div className="admin-mobile-value">{r.pax}</div>
+                        </div>
+                        <div className="admin-mobile-field">
+                          <span className="admin-mobile-label">Telefone</span>
+                          <div className="admin-mobile-value">
+                            {customer?.phone || "—"}
+                          </div>
+                        </div>
+                        <div className="admin-mobile-field">
+                          <span className="admin-mobile-label">Ambiente</span>
+                          <div className="admin-mobile-value">{env?.name || "—"}</div>
+                        </div>
+                      </div>
+                      <div className="admin-mobile-card-actions">
+                        {r.status === "pending" && (
+                          <button
+                            className="fh-btn fh-btn-sm fh-btn-outline"
+                            disabled={isLoading}
+                            onClick={() => updateStatus(r.id, "confirmed")}
+                          >
+                            Confirmar
+                          </button>
+                        )}
+                        {(r.status === "pending" || r.status === "confirmed") && (
+                          <button
+                            className="fh-btn fh-btn-sm"
+                            disabled={isLoading}
+                            onClick={() => updateStatus(r.id, "seated")}
+                            style={{
+                              background: "var(--color-info-bg)",
+                              color: "var(--color-info)",
+                              border: "1px solid rgba(91,141,239,0.25)",
+                              fontSize: "12px",
+                              padding: "5px 10px",
+                              borderRadius: "var(--radius-sm)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <Users size={12} /> Sentar
+                          </button>
+                        )}
+                        {r.status === "confirmed" && (
+                          <button
+                            className="fh-btn fh-btn-sm fh-btn-danger"
+                            disabled={isLoading}
+                            onClick={() => updateStatus(r.id, "no_show")}
+                          >
+                            <XCircle size={12} /> No-show
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       ) : (

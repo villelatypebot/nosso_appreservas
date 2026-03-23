@@ -126,8 +126,8 @@ export default function AmbientesPage() {
     const totalCapacity = envs.filter(e => e.is_active).reduce((sum, e) => sum + e.max_capacity, 0)
 
     return (
-        <div style={{ padding: '32px', maxWidth: '800px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="admin-page-shell narrow">
+            <div className="admin-page-header" style={{ marginBottom: '8px' }}>
                 <h1 style={{ fontSize: '26px', fontWeight: 700, color: '#fff' }}>
                     <Building2 size={22} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
                     Ambientes
@@ -156,9 +156,7 @@ export default function AmbientesPage() {
 
             {/* Capacity Summary */}
             {envs.length > 0 && (
-                <div style={{
-                    display: 'flex', gap: '16px', marginBottom: '24px',
-                }}>
+                <div className="admin-summary-grid">
                     <div className="fh-card" style={{ flex: 1, textAlign: 'center', padding: '16px' }}>
                         <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--brand-orange)' }}>{envs.filter(e => e.is_active).length}</p>
                         <p style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Ambientes Ativos</p>
@@ -174,7 +172,7 @@ export default function AmbientesPage() {
             {showForm && (
                 <div className="fh-card animate-fade-in" style={{ marginBottom: '24px', borderColor: 'var(--brand-gold-dark)' }}>
                     <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '20px' }}>Novo Ambiente</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                    <div className="admin-form-grid-2" style={{ marginBottom: '14px' }}>
                         <div>
                             <label className="fh-label">Nome do Ambiente *</label>
                             <input
@@ -204,7 +202,7 @@ export default function AmbientesPage() {
                             placeholder="Ex: Área aberta com vista para o jardim, 10 mesas"
                         />
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div className="admin-form-actions">
                         <button className="fh-btn fh-btn-ghost" onClick={() => setShowForm(false)}>Cancelar</button>
                         <button className="fh-btn fh-btn-primary" onClick={handleCreate} disabled={saving || !form.name.trim()}>
                             {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Salvando...</> : <><Save size={14} /> Criar Ambiente</>}
@@ -237,7 +235,7 @@ export default function AmbientesPage() {
                             {editingId === env.id ? (
                                 /* Edit mode */
                                 <div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                                    <div className="admin-form-grid-2" style={{ marginBottom: '14px' }}>
                                         <div>
                                             <label className="fh-label">Nome</label>
                                             <input
@@ -265,7 +263,7 @@ export default function AmbientesPage() {
                                             onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                                         />
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div className="admin-form-actions">
                                         <button className="fh-btn fh-btn-ghost fh-btn-sm" onClick={() => setEditingId(null)}>
                                             <X size={12} /> Cancelar
                                         </button>
@@ -276,8 +274,8 @@ export default function AmbientesPage() {
                                 </div>
                             ) : (
                                 /* View mode */
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <div className="admin-item-row">
+                                    <div className="admin-item-main" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                         <div style={{
                                             width: '44px', height: '44px', borderRadius: '12px',
                                             background: env.is_active ? 'rgba(244,121,32,0.1)' : 'rgba(255,255,255,0.05)',
@@ -295,7 +293,7 @@ export default function AmbientesPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                    <div className="admin-item-actions">
                                         <button
                                             className={`fh-btn fh-btn-sm ${env.is_active ? 'fh-btn-ghost' : 'fh-btn-outline'}`}
                                             onClick={() => toggleActive(env)}

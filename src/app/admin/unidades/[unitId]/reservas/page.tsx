@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
-import { Search, Filter, Plus, Check, X, Users, Clock, Calendar, RefreshCw } from 'lucide-react'
+import { Search, Plus, Check, X, Users, Clock, Calendar, RefreshCw } from 'lucide-react'
 import { formatDate, statusBadgeClass, statusLabel } from '@/lib/utils'
 import type { ReservationWithDetails, ReservationStatus } from '@/lib/supabase/types'
 
@@ -94,14 +94,14 @@ export default function ReservasPage() {
     }
 
     return (
-        <div style={{ padding: '32px', maxWidth: '1400px' }}>
+        <div className="admin-page-shell xwide">
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+            <div className="admin-page-header">
                 <div>
                     <h1 style={{ fontSize: '26px', marginBottom: '4px' }}>Reservas</h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{total} reservas encontradas</p>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="admin-header-actions">
                     <button className="fh-btn fh-btn-ghost fh-btn-sm" onClick={load}>
                         <RefreshCw size={14} />
                     </button>
@@ -112,7 +112,7 @@ export default function ReservasPage() {
             </div>
 
             {/* Filters */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <div className="admin-inline-filters">
                 <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
                     <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
@@ -141,61 +141,113 @@ export default function ReservasPage() {
             </div>
 
             {/* Table */}
-            <div className="fh-card" style={{ padding: 0, overflowX: 'auto' }}>
+            <div className="fh-card admin-table-shell">
                 {loading ? (
                     <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', display: 'block', margin: '0 auto 12px' }} />
                         Carregando...
                     </div>
                 ) : (
-                    <table className="fh-table">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Cliente</th>
-                                <th><Calendar size={12} style={{ display: 'inline', marginRight: '4px' }} />Data</th>
-                                <th><Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />Hora</th>
-                                <th><Users size={12} style={{ display: 'inline', marginRight: '4px' }} />Pax</th>
-                                <th>Ambiente</th>
-                                <th>Status</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data.length === 0 && (
+                    <>
+                        <table className="fh-table admin-table-desktop">
+                            <thead>
                                 <tr>
-                                    <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
-                                        Nenhuma reserva encontrada
-                                    </td>
+                                    <th>Código</th>
+                                    <th>Cliente</th>
+                                    <th><Calendar size={12} style={{ display: 'inline', marginRight: '4px' }} />Data</th>
+                                    <th><Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />Hora</th>
+                                    <th><Users size={12} style={{ display: 'inline', marginRight: '4px' }} />Pax</th>
+                                    <th>Ambiente</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
                                 </tr>
-                            )}
-                            {data.map((r) => {
+                            </thead>
+                            <tbody>
+                                {data.length === 0 && (
+                                    <tr>
+                                        <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                                            Nenhuma reserva encontrada
+                                        </td>
+                                    </tr>
+                                )}
+                                {data.map((r) => {
+                                    const customer = r.customers as { name: string; phone: string } | undefined
+                                    const env = r.environments as { name: string } | null | undefined
+                                    return (
+                                        <tr key={r.id}>
+                                            <td style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--brand-gold)', fontWeight: 700 }}>
+                                                {r.confirmation_code}
+                                            </td>
+                                            <td>
+                                                <div style={{ fontWeight: 500, fontSize: '13px' }}>{customer?.name || '—'}</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{customer?.phone}</div>
+                                            </td>
+                                            <td>{formatDate(r.reservation_date)}</td>
+                                            <td style={{ fontWeight: 500 }}>{String(r.reservation_time).substring(0, 5)}</td>
+                                            <td style={{ textAlign: 'center' }}>{r.pax}</td>
+                                            <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{env?.name || '—'}</td>
+                                            <td>
+                                                <span className={`fh-badge ${statusBadgeClass(r.status)}`}>
+                                                    {statusLabel(r.status)}
+                                                </span>
+                                            </td>
+                                            <td>{actionButtons(r)}</td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                        <div className="admin-table-mobile">
+                            {data.length === 0 ? (
+                                <div className="admin-mobile-card">
+                                    <div className="admin-mobile-value" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        Nenhuma reserva encontrada
+                                    </div>
+                                </div>
+                            ) : data.map((r) => {
                                 const customer = r.customers as { name: string; phone: string } | undefined
                                 const env = r.environments as { name: string } | null | undefined
                                 return (
-                                    <tr key={r.id}>
-                                        <td style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--brand-gold)', fontWeight: 700 }}>
-                                            {r.confirmation_code}
-                                        </td>
-                                        <td>
-                                            <div style={{ fontWeight: 500, fontSize: '13px' }}>{customer?.name || '—'}</div>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{customer?.phone}</div>
-                                        </td>
-                                        <td>{formatDate(r.reservation_date)}</td>
-                                        <td style={{ fontWeight: 500 }}>{String(r.reservation_time).substring(0, 5)}</td>
-                                        <td style={{ textAlign: 'center' }}>{r.pax}</td>
-                                        <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{env?.name || '—'}</td>
-                                        <td>
+                                    <div key={r.id} className="admin-mobile-card">
+                                        <div className="admin-mobile-card-head">
+                                            <div>
+                                                <div className="admin-mobile-card-title">{customer?.name || '—'}</div>
+                                                <div className="admin-mobile-card-subtitle">{r.confirmation_code}</div>
+                                            </div>
                                             <span className={`fh-badge ${statusBadgeClass(r.status)}`}>
                                                 {statusLabel(r.status)}
                                             </span>
-                                        </td>
-                                        <td>{actionButtons(r)}</td>
-                                    </tr>
+                                        </div>
+                                        <div className="admin-mobile-card-grid">
+                                            <div className="admin-mobile-field">
+                                                <span className="admin-mobile-label">Telefone</span>
+                                                <div className="admin-mobile-value">{customer?.phone || '—'}</div>
+                                            </div>
+                                            <div className="admin-mobile-field">
+                                                <span className="admin-mobile-label">Pessoas</span>
+                                                <div className="admin-mobile-value">{r.pax}</div>
+                                            </div>
+                                            <div className="admin-mobile-field">
+                                                <span className="admin-mobile-label">Data</span>
+                                                <div className="admin-mobile-value">{formatDate(r.reservation_date)}</div>
+                                            </div>
+                                            <div className="admin-mobile-field">
+                                                <span className="admin-mobile-label">Hora</span>
+                                                <div className="admin-mobile-value">{String(r.reservation_time).substring(0, 5)}</div>
+                                            </div>
+                                            <div className="admin-mobile-field">
+                                                <span className="admin-mobile-label">Ambiente</span>
+                                                <div className="admin-mobile-value">{env?.name || '—'}</div>
+                                            </div>
+                                        </div>
+                                        <div className="admin-mobile-card-actions">
+                                            {actionButtons(r)}
+                                        </div>
+                                    </div>
                                 )
                             })}
-                        </tbody>
-                    </table>
+                        </div>
+                    </>
                 )}
             </div>
 
