@@ -176,7 +176,7 @@ export async function notifyReservationEvent(
     switch (event) {
         case 'created':
             title = data.unitName
-                ? `Nova Reserva na unidade ${data.unitName}! 🎉`
+                ? `Nova Reserva ${data.unitName}! 🎉`
                 : 'Nova Reserva! 🎉'
             body = `${data.customerName}, ${data.pax} ${personLabel} ${formattedDate}.${confirmationSuffix}`
             tag = `reservation-new-${data.confirmationCode}`
