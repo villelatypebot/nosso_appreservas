@@ -156,6 +156,7 @@ export async function sendPushToAllAdmins(payload: NotificationPayload): Promise
 export async function notifyReservationEvent(
     event: 'created' | 'updated' | 'cancelled',
     data: {
+        unitName?: string | null
         customerName: string
         pax: number
         date: string // YYYY-MM-DD
@@ -166,24 +167,32 @@ export async function notifyReservationEvent(
     const [, month, day] = data.date.split('-')
     const formattedDate = `${day}/${month}`
 
+    const personLabel = data.pax === 1 ? 'pessoa' : 'pessoas'
+    const confirmationSuffix = data.confirmationCode ? ` ${data.confirmationCode}` : ''
     let title: string
     let body: string
     let tag: string
 
     switch (event) {
         case 'created':
-            title = 'Nova Reserva! 🎉'
-            body = `${data.customerName}. ${data.pax} pessoas (${formattedDate}).`
+            title = data.unitName
+                ? `Nova Reserva na unidade ${data.unitName}! 🎉`
+                : 'Nova Reserva! 🎉'
+            body = `${data.customerName}, ${data.pax} ${personLabel} ${formattedDate}.${confirmationSuffix}`
             tag = `reservation-new-${data.confirmationCode}`
             break
         case 'updated':
-            title = 'Reserva Editada ✏️'
-            body = `${data.customerName}. ${data.pax} pessoas (${formattedDate}).`
+            title = data.unitName
+                ? `Reserva editada na unidade ${data.unitName}! ✏️`
+                : 'Reserva Editada ✏️'
+            body = `${data.customerName}, ${data.pax} ${personLabel} ${formattedDate}.${confirmationSuffix}`
             tag = `reservation-edit-${data.confirmationCode}`
             break
         case 'cancelled':
-            title = 'Reserva Cancelada ❌'
-            body = `${data.customerName}. ${data.pax} pessoas (${formattedDate}).`
+            title = data.unitName
+                ? `Reserva cancelada na unidade ${data.unitName}! ❌`
+                : 'Reserva Cancelada ❌'
+            body = `${data.customerName}, ${data.pax} ${personLabel} ${formattedDate}.${confirmationSuffix}`
             tag = `reservation-cancel-${data.confirmationCode}`
             break
     }

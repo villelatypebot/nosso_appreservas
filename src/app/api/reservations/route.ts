@@ -32,6 +32,19 @@ function shouldFallbackToAppValidation(error: { code?: string; message?: string 
         || false
 }
 
+async function fetchUnitName(
+    supabase: ReturnType<typeof getAdminClient>,
+    unitId: string
+) {
+    const { data } = await supabase
+        .from('units')
+        .select('name')
+        .eq('id', unitId)
+        .maybeSingle()
+
+    return data?.name || null
+}
+
 async function createReservationFallback(
     supabase: ReturnType<typeof getAdminClient>,
     params: {
@@ -147,6 +160,8 @@ export async function POST(request: Request) {
             throw new ReservationValidationError('Erro ao criar reserva.', 500)
         }
 
+        const unitName = await fetchUnitName(supabase, unitId)
+
         // Trigger webhooks async (fire and forget)
         triggerWebhooks(supabase, unitId, 'reservation.confirmed', {
             reservation_id: reservation.id,
@@ -160,6 +175,7 @@ export async function POST(request: Request) {
 
         // Send push notification to admins (fire and forget)
         notifyReservationEvent('created', {
+            unitName,
             customerName: name,
             pax: Number(pax),
             date: reservation.reservation_date,
@@ -247,7 +263,9 @@ export async function PATCH(request: Request) {
     // Send push notification for status changes (fire and forget)
     if (status === 'cancelled') {
         const customer = data.customers as { name: string; phone: string } | null
+        const unit = data.units as { id?: string; name?: string } | null
         notifyReservationEvent('cancelled', {
+            unitName: unit?.name || null,
             customerName: customer?.name || 'Cliente',
             pax: data.pax,
             date: data.reservation_date,
@@ -255,7 +273,9 @@ export async function PATCH(request: Request) {
         }).catch(console.error)
     } else if (status === 'confirmed') {
         const customer = data.customers as { name: string; phone: string } | null
+        const unit = data.units as { id?: string; name?: string } | null
         notifyReservationEvent('updated', {
+            unitName: unit?.name || null,
             customerName: customer?.name || 'Cliente',
             pax: data.pax,
             date: data.reservation_date,

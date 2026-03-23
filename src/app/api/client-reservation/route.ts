@@ -152,7 +152,10 @@ export async function PATCH(request: Request) {
         // Send push notification to admins about the edit (fire and forget)
         const rawCustomer = updatedReservation.customers
         const customer = (Array.isArray(rawCustomer) ? rawCustomer[0] : rawCustomer) as { name: string } | null
+        const rawUnit = updatedReservation.units
+        const unit = (Array.isArray(rawUnit) ? rawUnit[0] : rawUnit) as { name?: string } | null
         notifyReservationEvent('updated', {
+            unitName: unit?.name || null,
             customerName: customer?.name || 'Cliente',
             pax: updatedReservation.pax,
             date: updatedReservation.reservation_date,
