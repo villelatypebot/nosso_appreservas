@@ -388,6 +388,44 @@ body {
   z-index: 1;
 }
 
+.admin-mobile-bar {
+  display: none;
+}
+
+.admin-mobile-trigger {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--brand-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.admin-mobile-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-mobile-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.admin-mobile-overlay {
+  display: none;
+}
+
 /* =========================================
    STAT CARDS
    ========================================= */
@@ -918,15 +956,50 @@ textarea.fh-input {
    RESPONSIVE
    ========================================= */
 @media (max-width: 768px) {
-  .admin-sidebar {
+  .admin-mobile-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    background: rgba(4, 2, 1, 0.92);
+    border-bottom: 1px solid var(--brand-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .admin-sidebar,
+  .admin-sidebar.collapsed {
+    width: min(320px, 86vw) !important;
     transform: translateX(-100%);
+    transition: transform 0.25s ease;
   }
 
   .admin-sidebar.mobile-open {
     transform: translateX(0);
   }
 
+  .admin-mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+  }
+
+  .admin-collapse-toggle {
+    display: none !important;
+  }
+
   .admin-content {
     margin-left: 0 !important;
+    padding-top: 76px;
+    min-width: 0;
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import {
     LayoutDashboard, Calendar, Settings, Webhook, Bell, BarChart3,
     Users, ChevronLeft, ChevronRight, LogOut, Building2, Clock,
-    CalendarX, Home, UserCog
+    CalendarX, Home, UserCog, Menu, X
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import PushNotificationToggle from './PushNotificationToggle'
@@ -29,12 +29,27 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
     const [collapsed, setCollapsed] = useState(false)
+    const [mobileOpen, setMobileOpen] = useState(false)
+
+    const closeMobileMenu = () => setMobileOpen(false)
 
     const handleLogout = async () => {
+        closeMobileMenu()
         const supabase = createClient()
         await supabase.auth.signOut()
         router.push('/admin/login')
     }
+
+    useEffect(() => {
+        const onResize = () => {
+            if (window.innerWidth > 768) {
+                setMobileOpen(false)
+            }
+        }
+
+        window.addEventListener('resize', onResize)
+        return () => window.removeEventListener('resize', onResize)
+    }, [])
 
     const baseItems: NavItem[] = [
         { icon: <LayoutDashboard size={18} />, label: 'Dashboard', href: '/admin/dashboard', group: 'Visão Geral' },
@@ -66,9 +81,38 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
 
     return (
         <>
+            <div className="admin-mobile-bar">
+                <button
+                    type="button"
+                    className="admin-mobile-trigger"
+                    onClick={() => setMobileOpen((open) => !open)}
+                    aria-label={mobileOpen ? 'Fechar menu' : 'Abrir menu'}
+                >
+                    {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+                </button>
+
+                <div style={{ minWidth: 0 }}>
+                    <div className="admin-mobile-title">
+                        {unitName || 'Full House Admin'}
+                    </div>
+                    <div className="admin-mobile-subtitle">
+                        {unitId ? 'Menu da unidade' : 'Menu principal'}
+                    </div>
+                </div>
+            </div>
+
+            {mobileOpen && (
+                <button
+                    type="button"
+                    className="admin-mobile-overlay"
+                    aria-label="Fechar menu"
+                    onClick={() => setMobileOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
             <aside
-                className={`admin-sidebar ${collapsed ? 'collapsed' : ''}`}
+                className={`admin-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
                 style={{ overflowX: 'hidden' }}
             >
                 {/* Logo */}
@@ -93,7 +137,10 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
                             overflow: 'hidden',
                             cursor: 'pointer'
                         }}
-                        onClick={() => router.push('/admin/dashboard')}
+                        onClick={() => {
+                            closeMobileMenu()
+                            router.push('/admin/dashboard')
+                        }}
                     >
                         <Image src="/fullhouse-logo.jpg" alt="Logo" width={36} height={36} style={{ objectFit: 'cover' }} />
                     </motion.div>
@@ -121,6 +168,7 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
                                     href={item.href}
                                     className={`sidebar-item ${isActive ? 'active' : ''}`}
                                     title={collapsed ? item.label : undefined}
+                                    onClick={closeMobileMenu}
                                 >
                                     <span style={{ flexShrink: 0 }}>{item.icon}</span>
                                     {!collapsed && <span>{item.label}</span>}
@@ -154,6 +202,7 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
                 {/* Collapse toggle */}
                 <button
                     onClick={() => setCollapsed(c => !c)}
+                    className="admin-collapse-toggle"
                     style={{
                         position: 'absolute',
                         top: '24px',

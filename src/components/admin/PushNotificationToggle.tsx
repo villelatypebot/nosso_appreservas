@@ -15,24 +15,23 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export default function PushNotificationToggle() {
-    const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default')
+    const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() => {
+        if (typeof window === 'undefined') return 'default'
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported'
+        return Notification.permission
+    })
     const [isSubscribed, setIsSubscribed] = useState(false)
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            setPermission('unsupported')
-            return
-        }
-
-        setPermission(Notification.permission)
+        if (permission === 'unsupported') return
 
         // Check if already subscribed
         navigator.serviceWorker.ready.then(async (registration) => {
             const subscription = await registration.pushManager.getSubscription()
             setIsSubscribed(!!subscription)
         })
-    }, [])
+    }, [permission])
 
     const subscribe = async () => {
         setLoading(true)
@@ -99,8 +98,6 @@ export default function PushNotificationToggle() {
         setLoading(false)
     }
 
-    if (permission === 'unsupported') return null
-
     return (
         <button
             className="sidebar-item"
@@ -108,14 +105,20 @@ export default function PushNotificationToggle() {
                 width: '100%',
                 background: 'none',
                 border: 'none',
-                cursor: loading ? 'wait' : 'pointer',
-                color: isSubscribed ? 'var(--color-success)' : 'var(--text-muted)',
+                cursor: loading ? 'wait' : permission === 'unsupported' ? 'not-allowed' : 'pointer',
+                color: permission === 'unsupported'
+                    ? 'rgba(255,255,255,0.28)'
+                    : isSubscribed ? 'var(--color-success)' : 'var(--text-muted)',
                 fontSize: '13px',
                 transition: 'color 0.2s',
             }}
-            onClick={isSubscribed ? unsubscribe : subscribe}
-            disabled={loading}
-            title={isSubscribed ? 'Desativar notificações' : 'Ativar notificações'}
+            onClick={permission === 'unsupported' ? undefined : isSubscribed ? unsubscribe : subscribe}
+            disabled={loading || permission === 'unsupported'}
+            title={
+                permission === 'unsupported'
+                    ? 'Este dispositivo ou navegador ainda não suporta notificações push.'
+                    : isSubscribed ? 'Desativar notificações' : 'Ativar notificações'
+            }
         >
             {loading ? (
                 <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
@@ -124,7 +127,11 @@ export default function PushNotificationToggle() {
             ) : (
                 <BellOff size={18} />
             )}
-            <span>{isSubscribed ? 'Notificações ON' : 'Notificações OFF'}</span>
+            <span>
+                {permission === 'unsupported'
+                    ? 'Notificações indisponíveis'
+                    : isSubscribed ? 'Notificações ON' : 'Notificações OFF'}
+            </span>
         </button>
     )
 }
