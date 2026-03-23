@@ -1,18 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function AdminLoginPage() {
     const router = useRouter()
+    const [freeAccess, setFreeAccess] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPass, setShowPass] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
+    useEffect(() => {
+        if (!freeAccess) return
+        router.replace('/admin/dashboard')
+    }, [freeAccess, router])
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -27,6 +32,10 @@ export default function AdminLoginPage() {
         }
     }
 
+    const handleFreeAccess = () => {
+        setError('')
+        setFreeAccess(true)
+    }
     return (
         <main style={{
             minHeight: '100vh',
@@ -54,12 +63,30 @@ export default function AdminLoginPage() {
                         Full House Admin
                     </h1>
                     <p style={{ fontSize: '13px', color: '#A07850' }}>
-                        Área restrita — use suas credenciais de administrador
+                        Projeto em teste - acesso livre ao painel administrativo
                     </p>
                 </div>
 
                 {/* Card */}
                 <div className="fh-card" style={{ padding: '32px', boxShadow: '0 8px 40px rgba(244,121,32,.12)' }}>
+                    <button
+                        className="fh-btn fh-btn-primary fh-btn-lg fh-btn-full"
+                        type="button"
+                        onClick={handleFreeAccess}
+                        disabled={freeAccess}
+                        style={{ marginBottom: '18px' }}
+                    >
+                        {freeAccess ? 'Abrindo painel...' : 'Entrar sem login'}
+                    </button>
+
+                    <div style={{
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                        textAlign: 'center',
+                        marginBottom: '18px',
+                    }}>
+                        Se quiser, o login por e-mail e senha continua disponivel abaixo.
+                    </div>
                     <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                         <div>
                             <label className="fh-label">E-mail</label>
