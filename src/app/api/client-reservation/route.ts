@@ -27,6 +27,19 @@ function shouldFallbackToAppValidation(error: { code?: string; message?: string 
         || false
 }
 
+async function settleSideEffects(
+    label: string,
+    tasks: Array<Promise<unknown>>
+) {
+    const results = await Promise.allSettled(tasks)
+
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            console.error(`[${label}] side effect ${index + 1} failed:`, result.reason)
+        }
+    })
+}
+
 // GET: Recupera os dados da reserva usando APENAS o código de confirmação.
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -153,18 +166,20 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'Falha ao atualizar reserva' }, { status: 500 })
         }
 
-        // Send push notification to admins about the edit (fire and forget)
         const updatedCustomerRaw = updatedReservation.customers
         const customer = (Array.isArray(updatedCustomerRaw) ? updatedCustomerRaw[0] : updatedCustomerRaw) as { name?: string } | null
         const rawUnit = updatedReservation.units
         const unit = (Array.isArray(rawUnit) ? rawUnit[0] : rawUnit) as { name?: string } | null
-        notifyReservationEvent('updated', {
-            unitName: unit?.name || null,
-            customerName: customer?.name || 'Cliente',
-            pax: updatedReservation.pax,
-            date: updatedReservation.reservation_date,
-            confirmationCode: updatedReservation.confirmation_code,
-        }).catch(console.error)
+
+        await settleSideEffects('Client reservation PATCH', [
+            notifyReservationEvent('updated', {
+                unitName: unit?.name || null,
+                customerName: customer?.name || 'Cliente',
+                pax: updatedReservation.pax,
+                date: updatedReservation.reservation_date,
+                confirmationCode: updatedReservation.confirmation_code,
+            }),
+        ])
 
         return NextResponse.json({ reservation: updatedReservation }, { status: 200 })
 

@@ -32,6 +32,19 @@ function shouldFallbackToAppValidation(error: { code?: string; message?: string 
         || false
 }
 
+async function settleSideEffects(
+    label: string,
+    tasks: Array<Promise<unknown>>
+) {
+    const results = await Promise.allSettled(tasks)
+
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            console.error(`[${label}] side effect ${index + 1} failed:`, result.reason)
+        }
+    })
+}
+
 async function fetchUnitName(
     supabase: ReturnType<typeof getAdminClient>,
     unitId: string
@@ -163,25 +176,24 @@ export async function POST(request: Request) {
 
         const unitName = await fetchUnitName(supabase, unitId)
 
-        // Trigger webhooks async (fire and forget)
-        triggerWebhooks(supabase, unitId, 'reservation.confirmed', {
-            reservation_id: reservation.id,
-            confirmation_code: reservation.confirmation_code,
-            date: reservation.reservation_date,
-            time: reservation.reservation_time,
-            pax: reservation.pax,
-            customer: { name, email, phone },
-            unit_id: unitId,
-        }).catch(console.error)
-
-        // Send push notification to admins (fire and forget)
-        notifyReservationEvent('created', {
-            unitName,
-            customerName: name,
-            pax: Number(pax),
-            date: reservation.reservation_date,
-            confirmationCode: reservation.confirmation_code,
-        }).catch(console.error)
+        await settleSideEffects('Reservations POST', [
+            triggerWebhooks(supabase, unitId, 'reservation.confirmed', {
+                reservation_id: reservation.id,
+                confirmation_code: reservation.confirmation_code,
+                date: reservation.reservation_date,
+                time: reservation.reservation_time,
+                pax: reservation.pax,
+                customer: { name, email, phone },
+                unit_id: unitId,
+            }),
+            notifyReservationEvent('created', {
+                unitName,
+                customerName: name,
+                pax: Number(pax),
+                date: reservation.reservation_date,
+                confirmationCode: reservation.confirmation_code,
+            }),
+        ])
 
         return NextResponse.json(reservation, { status: 201 })
     } catch (err) {
@@ -251,37 +263,48 @@ export async function PATCH(request: Request) {
         no_show: 'reservation.no_show',
         seated: 'reservation.seated',
     }
+    const sideEffects: Array<Promise<unknown>> = []
+
     if (status && eventMap[status]) {
-        triggerWebhooks(supabase, data.unit_id, eventMap[status], {
-            reservation_id: data.id,
-            confirmation_code: data.confirmation_code,
-            status: data.status,
-            customer: data.customers,
-            unit: data.units,
-        }).catch(console.error)
+        sideEffects.push(
+            triggerWebhooks(supabase, data.unit_id, eventMap[status], {
+                reservation_id: data.id,
+                confirmation_code: data.confirmation_code,
+                status: data.status,
+                customer: data.customers,
+                unit: data.units,
+            })
+        )
     }
 
-    // Send push notification for status changes (fire and forget)
     if (status === 'cancelled') {
         const customer = data.customers as { name: string; phone: string } | null
         const unit = data.units as { id?: string; name?: string } | null
-        notifyReservationEvent('cancelled', {
-            unitName: unit?.name || null,
-            customerName: customer?.name || 'Cliente',
-            pax: data.pax,
-            date: data.reservation_date,
-            confirmationCode: data.confirmation_code,
-        }).catch(console.error)
+        sideEffects.push(
+            notifyReservationEvent('cancelled', {
+                unitName: unit?.name || null,
+                customerName: customer?.name || 'Cliente',
+                pax: data.pax,
+                date: data.reservation_date,
+                confirmationCode: data.confirmation_code,
+            })
+        )
     } else if (status === 'confirmed') {
         const customer = data.customers as { name: string; phone: string } | null
         const unit = data.units as { id?: string; name?: string } | null
-        notifyReservationEvent('updated', {
-            unitName: unit?.name || null,
-            customerName: customer?.name || 'Cliente',
-            pax: data.pax,
-            date: data.reservation_date,
-            confirmationCode: data.confirmation_code,
-        }).catch(console.error)
+        sideEffects.push(
+            notifyReservationEvent('updated', {
+                unitName: unit?.name || null,
+                customerName: customer?.name || 'Cliente',
+                pax: data.pax,
+                date: data.reservation_date,
+                confirmationCode: data.confirmation_code,
+            })
+        )
+    }
+
+    if (sideEffects.length > 0) {
+        await settleSideEffects('Reservations PATCH', sideEffects)
     }
 
     return NextResponse.json(data)
