@@ -5,7 +5,7 @@ export async function POST() {
     try {
         const now = new Date()
         const result = await sendPushToAllAdmins({
-            title: 'Nova Reserva Full House Boa Vista! 🎉',
+            title: 'Nova Reserva Boa Vista! 🎉',
             body: `Cliente teste, 4 pessoas ${now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}. FH-TESTE`,
             url: '/admin/dashboard',
             tag: `push-test-${now.getTime()}`,
