@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Check, Users, Calendar, Clock, Phone, Mail, User, Loader2, Copy } from 'lucide-react'
 
@@ -31,9 +31,15 @@ interface WizardState {
     notes: string
 }
 
+interface ReservationRules {
+    minPax: number
+    maxPax: number
+}
+
 interface Props {
     unit: Unit
     environments: Environment[]
+    reservationRules?: ReservationRules
     availableSlots: Record<string, { available: boolean; count: number }>
 }
 
@@ -49,6 +55,15 @@ const OCCASIONS = [
 const TIME_SLOTS = [
     '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
 ]
+
+const DEFAULT_RESERVATION_RULES: ReservationRules = {
+    minPax: 1,
+    maxPax: 20,
+}
+
+function clampPax(value: number, minPax: number, maxPax: number) {
+    return Math.min(maxPax, Math.max(minPax, Math.floor(value)))
+}
 
 // ─── Animations Variants ─────────────────────────────
 const slideVariants: any = {
@@ -194,47 +209,154 @@ function MiniCalendar({ value, onChange }: { value: string; onChange: (d: string
 }
 
 // ─── Step 1: Details ──────────────────────────────────
-function Step1({ state, onChange }: { state: WizardState; onChange: (k: keyof WizardState, v: unknown) => void }) {
-    const paxOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20]
+function Step1({
+    state,
+    reservationRules,
+    onChange,
+}: {
+    state: WizardState
+    reservationRules: ReservationRules
+    onChange: (k: keyof WizardState, v: unknown) => void
+}) {
+    const minPax = Math.max(1, reservationRules.minPax)
+    const maxPax = Math.max(minPax, reservationRules.maxPax)
+    const quickPaxLimit = Math.min(maxPax, 10)
+    const quickPaxOptions = useMemo(() => {
+        if (minPax > quickPaxLimit) return []
+        return Array.from({ length: quickPaxLimit - minPax + 1 }, (_, index) => minPax + index)
+    }, [minPax, quickPaxLimit])
+    const [customPax, setCustomPax] = useState(() => (
+        state.pax > quickPaxLimit || minPax > quickPaxLimit ? String(state.pax || '') : ''
+    ))
+
+    useEffect(() => {
+        if (state.pax > quickPaxLimit || minPax > quickPaxLimit) {
+            setCustomPax(state.pax ? String(state.pax) : '')
+            return
+        }
+
+        setCustomPax('')
+    }, [state.pax, minPax, quickPaxLimit])
+
+    const handleCustomPaxChange = (rawValue: string) => {
+        setCustomPax(rawValue)
+
+        if (!rawValue) {
+            onChange('pax', 0)
+            return
+        }
+
+        const numericValue = Number(rawValue)
+        if (!Number.isFinite(numericValue)) return
+
+        onChange('pax', Math.floor(numericValue))
+    }
+
+    const handleCustomPaxBlur = () => {
+        if (!customPax) return
+
+        const numericValue = Number(customPax)
+        if (!Number.isFinite(numericValue)) {
+            setCustomPax('')
+            onChange('pax', 0)
+            return
+        }
+
+        const normalizedValue = clampPax(numericValue, minPax, maxPax)
+        setCustomPax(String(normalizedValue))
+        onChange('pax', normalizedValue)
+    }
+
+    const selectedQuickOption = quickPaxOptions.includes(state.pax)
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             <div>
                 <ThemedLabel icon={Users}>Para quantas pessoas?</ThemedLabel>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {paxOptions.map(n => {
-                        const selected = state.pax === n
-                        return (
-                            <motion.button
-                                key={n}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => onChange('pax', n)}
-                                style={{
-                                    width: '48px', height: '48px', borderRadius: '16px',
-                                    background: selected ? '#F47920' : 'rgba(255,255,255,0.03)',
-                                    border: selected ? '1px solid #F47920' : '1px solid rgba(255,255,255,0.1)',
-                                    color: selected ? '#fff' : 'rgba(255,255,255,0.7)',
-                                    fontSize: '16px', fontWeight: selected ? 800 : 600,
-                                    cursor: 'pointer',
-                                    boxShadow: selected ? '0 8px 20px rgba(244,121,32,0.3)' : 'none',
-                                    transition: 'all 0.2s ease'
-                                }}
-                            >
-                                {n}
-                            </motion.button>
-                        )
-                    })}
-                </div>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '14px', lineHeight: 1.6 }}>
+                    Esta unidade aceita reservas de <strong style={{ color: '#fff' }}>{minPax}</strong> a <strong style={{ color: '#fff' }}>{maxPax}</strong> pessoas.
+                </p>
+                {quickPaxOptions.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {quickPaxOptions.map(n => {
+                            const selected = state.pax === n
+                            return (
+                                <motion.button
+                                    key={n}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => onChange('pax', n)}
+                                    style={{
+                                        width: '48px', height: '48px', borderRadius: '16px',
+                                        background: selected ? '#F47920' : 'rgba(255,255,255,0.03)',
+                                        border: selected ? '1px solid #F47920' : '1px solid rgba(255,255,255,0.1)',
+                                        color: selected ? '#fff' : 'rgba(255,255,255,0.7)',
+                                        fontSize: '16px', fontWeight: selected ? 800 : 600,
+                                        cursor: 'pointer',
+                                        boxShadow: selected ? '0 8px 20px rgba(244,121,32,0.3)' : 'none',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    {n}
+                                </motion.button>
+                            )
+                        })}
+                    </div>
+                )}
+
+                {maxPax > 10 && (
+                    <div style={{
+                        marginTop: quickPaxOptions.length > 0 ? '16px' : 0,
+                        padding: '18px',
+                        borderRadius: '18px',
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                    }}>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '10px' }}>
+                            Grupos maiores: digite a quantidade
+                        </label>
+                        <input
+                            type="number"
+                            min={minPax}
+                            max={maxPax}
+                            value={customPax}
+                            onChange={e => handleCustomPaxChange(e.target.value)}
+                            onBlur={handleCustomPaxBlur}
+                            placeholder={`De ${Math.max(minPax, 11)} a ${maxPax}`}
+                            style={{
+                                width: '100%',
+                                padding: '16px',
+                                borderRadius: '16px',
+                                border: state.pax > 0 && !selectedQuickOption && (state.pax < minPax || state.pax > maxPax)
+                                    ? '1px solid rgba(239,68,68,0.5)'
+                                    : '1px solid rgba(255,255,255,0.1)',
+                                background: 'rgba(255,255,255,0.03)',
+                                color: '#fff',
+                                fontSize: '16px',
+                                fontWeight: 600,
+                                outline: 'none',
+                            }}
+                        />
+                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '10px' }}>
+                            Use esse campo para reservas acima de 10 pessoas.
+                        </p>
+                    </div>
+                )}
+
+                {state.pax > 0 && (state.pax < minPax || state.pax > maxPax) && (
+                    <p style={{ fontSize: '12px', color: '#fda4af', marginTop: '12px' }}>
+                        Escolha uma quantidade entre {minPax} e {maxPax} pessoas.
+                    </p>
+                )}
             </div>
 
-            {state.pax > 0 && (
+            {state.pax >= minPax && state.pax <= maxPax && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
                     <ThemedLabel icon={Calendar}>E para quando?</ThemedLabel>
                     <MiniCalendar value={state.date} onChange={d => onChange('date', d)} />
                 </motion.div>
             )}
 
-            {state.date && (
+            {state.date && state.pax >= minPax && state.pax <= maxPax && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
                     <ThemedLabel icon={Clock}>Em qual horário?</ThemedLabel>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px' }}>
@@ -445,10 +567,16 @@ function Step4({ code, phone }: { code: string, phone: string }) {
 }
 
 // ─── Main Component ───────────────────────────────────
-export default function ReservationWizard({ unit, environments }: Props) {
+export default function ReservationWizard({ unit, environments, reservationRules }: Props) {
     const [[step, direction], setPage] = useState([1, 0])
     const [loading, setLoading] = useState(false)
     const [confirmCode, setConfirmCode] = useState('')
+    const normalizedReservationRules = useMemo(() => {
+        const minPax = Math.max(1, Number(reservationRules?.minPax ?? DEFAULT_RESERVATION_RULES.minPax))
+        const maxPax = Math.max(minPax, Number(reservationRules?.maxPax ?? DEFAULT_RESERVATION_RULES.maxPax))
+
+        return { minPax, maxPax }
+    }, [reservationRules?.minPax, reservationRules?.maxPax])
 
     const [state, setState] = useState<WizardState>({
         pax: 0, date: '', time: '', environmentId: null,
@@ -458,7 +586,7 @@ export default function ReservationWizard({ unit, environments }: Props) {
     const change = (key: keyof WizardState, value: unknown) => setState(s => ({ ...s, [key]: value }))
 
     const canAdvance = () => {
-        if (step === 1) return state.pax > 0 && !!state.date && !!state.time
+        if (step === 1) return state.pax >= normalizedReservationRules.minPax && state.pax <= normalizedReservationRules.maxPax && !!state.date && !!state.time
         if (step === 2) return true
         if (step === 3) return !!state.name && !!state.phone && state.phone.length >= 14
         return false
@@ -515,7 +643,7 @@ export default function ReservationWizard({ unit, environments }: Props) {
                         exit="exit"
                         style={{ flex: 1 }}
                     >
-                        {step === 1 && <Step1 state={state} onChange={change} />}
+                        {step === 1 && <Step1 state={state} reservationRules={normalizedReservationRules} onChange={change} />}
                         {step === 2 && <Step2 state={state} environments={environments} onChange={change} />}
                         {step === 3 && <Step3 state={state} onChange={change} />}
                         {step === 4 && <Step4 code={confirmCode} phone={state.phone} />}

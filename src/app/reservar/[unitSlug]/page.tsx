@@ -7,6 +7,11 @@ interface Props {
     params: Promise<{ unitSlug: string }>
 }
 
+interface ReservationRules {
+    minPax: number
+    maxPax: number
+}
+
 // Static unit data (will be replaced by Supabase fetch once connected)
 const UNIT_DATA: Record<string, {
     id: string; name: string; slug: string; address: string; phone: string;
@@ -78,15 +83,27 @@ async function getUnitData(unitSlug: string) {
 
         // Load all columns so we can support both legacy and CRM schemas.
         let environments: { id: string; name: string; capacity: number }[] = []
-        const { data: envs, error: envErr } = await supabase
-            .from('environments')
-            .select('*')
-            .eq('unit_id', unit.id)
-            .eq('is_active', true)
-            .order('name')
+
+        const [{ data: envs, error: envErr }, { data: rules, error: rulesErr }] = await Promise.all([
+            supabase
+                .from('environments')
+                .select('*')
+                .eq('unit_id', unit.id)
+                .eq('is_active', true)
+                .order('name'),
+            supabase
+                .from('reservation_rules')
+                .select('min_pax, max_pax')
+                .eq('unit_id', unit.id)
+                .maybeSingle(),
+        ])
 
         if (envErr) {
             console.error('Environment fetch error:', envErr.message)
+        }
+
+        if (rulesErr) {
+            console.error('Reservation rules fetch error:', rulesErr.message)
         }
 
         if (envs && envs.length > 0) {
@@ -97,7 +114,16 @@ async function getUnitData(unitSlug: string) {
             }))
         }
 
-        return { unit, environments: environments.length > 0 ? environments : DEFAULT_ENVIRONMENTS }
+        const resolvedEnvironments = environments.length > 0 ? environments : DEFAULT_ENVIRONMENTS
+        const maxEnvironmentCapacity = resolvedEnvironments.reduce((max, environment) => Math.max(max, environment.capacity), 20)
+        const minPax = Math.max(1, Number(rules?.min_pax ?? 1))
+        const maxPax = Math.max(minPax, Number(rules?.max_pax ?? maxEnvironmentCapacity))
+        const reservationRules: ReservationRules = {
+            minPax,
+            maxPax,
+        }
+
+        return { unit, environments: resolvedEnvironments, reservationRules }
     } catch (err) {
         console.error('getUnitData error:', err)
         return null
@@ -119,7 +145,7 @@ export default async function ReservarPage({ params }: Props) {
         )
     }
 
-    const { unit, environments } = result
+    const { unit, environments, reservationRules } = result
 
     return (
         <main style={{ background: '#040201', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
@@ -209,6 +235,7 @@ export default async function ReservarPage({ params }: Props) {
                     <ReservationWizard
                         unit={unit}
                         environments={environments}
+                        reservationRules={reservationRules}
                         availableSlots={{}}
                     />
                 </div>
