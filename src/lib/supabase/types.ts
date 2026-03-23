@@ -30,7 +30,8 @@ export interface Database {
                     id: string
                     unit_id: string
                     name: string
-                    capacity: number
+                    capacity?: number | null
+                    max_capacity?: number | null
                     is_active: boolean
                 }
                 Insert: Omit<Database['public']['Tables']['environments']['Row'], 'id'>
@@ -178,9 +179,9 @@ export interface Database {
                 Update: Partial<Database['public']['Tables']['admin_users']['Insert']>
             }
         }
-        Views: {}
-        Functions: {}
-        Enums: {}
+        Views: Record<string, never>
+        Functions: Record<string, never>
+        Enums: Record<string, never>
     }
 }
 

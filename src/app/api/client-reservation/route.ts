@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyReservationEvent } from '@/lib/push'
+import {
+    normalizeReservationTime,
+    ReservationValidationError,
+    validateReservationRequest,
+} from '@/lib/reservation-validation'
 
 function getAdminClient() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -8,6 +13,11 @@ function getAdminClient() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
+}
+
+function shouldFallbackToAppValidation(error: { code?: string; message?: string } | null) {
+    if (!error) return false
+    return error.code === 'PGRST202' || error.message?.includes('update_reservation_safely') || false
 }
 
 // GET: Recupera os dados da reserva usando APENAS o código de confirmação.
@@ -55,7 +65,7 @@ export async function PATCH(request: Request) {
         // 1. Verificamos se a reserva bate com o código
         const { data: existing, error: errExist } = await supabase
             .from('reservations')
-            .select('id, status, unit_id')
+            .select('id, status, unit_id, reservation_date, reservation_time, pax, environment_id')
             .eq('confirmation_code', code.toUpperCase().trim())
             .single()
 
@@ -68,29 +78,63 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'Esta reserva não pode mais ser alterada status: ' + existing.status }, { status: 400 })
         }
 
-        // 2. Aplicamos os updates permitidos na tabela
-        const allowedUpdates = {
-            pax: Number(updates.pax) || undefined,
-            reservation_date: updates.date || undefined,
-            reservation_time: updates.time || undefined,
-            environment_id: updates.environmentId || undefined,
-            updated_at: new Date().toISOString()
+        const nextPax = Number(updates.pax ?? existing.pax)
+        const nextDate = updates.date || existing.reservation_date
+        const nextTime = normalizeReservationTime(updates.time || existing.reservation_time)
+        const nextEnvironmentId = updates.environmentId ?? existing.environment_id ?? null
+
+        await validateReservationRequest(supabase, {
+            unitId: existing.unit_id,
+            environmentId: nextEnvironmentId,
+            pax: nextPax,
+            date: nextDate,
+            time: nextTime,
+            excludeReservationId: existing.id,
+        })
+
+        const { data: rpcUpdated, error: rpcError } = await supabase
+            .rpc('update_reservation_safely', {
+                p_confirmation_code: code.toUpperCase().trim(),
+                p_pax: nextPax,
+                p_reservation_date: nextDate,
+                p_reservation_time: nextTime,
+                p_environment_id: nextEnvironmentId,
+            })
+            .single()
+
+        if (rpcError && !shouldFallbackToAppValidation(rpcError)) {
+            console.error('update_reservation_safely rpc error:', rpcError)
+            return NextResponse.json({ error: rpcError.message || 'Falha ao atualizar reserva' }, { status: 400 })
         }
 
-        // Limpa chaves undefined
-        Object.keys(allowedUpdates).forEach(key => allowedUpdates[key as keyof typeof allowedUpdates] === undefined && delete allowedUpdates[key as keyof typeof allowedUpdates])
-
-        const { data: updatedReservation, error: errUpdate } = await supabase
-            .from('reservations')
-            .update(allowedUpdates)
-            .eq('id', existing.id)
-            .select(`
-                id, reservation_date, reservation_time, pax, status, confirmation_code,
-                environments(id, name),
-                units(id, name, address),
-                customers(name, phone, email)
-            `)
-            .single()
+        const { data: updatedReservation, error: errUpdate } = rpcUpdated
+            ? await supabase
+                .from('reservations')
+                .select(`
+                    id, reservation_date, reservation_time, pax, status, confirmation_code,
+                    environments(id, name),
+                    units(id, name, address),
+                    customers(name, phone, email)
+                `)
+                .eq('id', rpcUpdated.id)
+                .single()
+            : await supabase
+                .from('reservations')
+                .update({
+                    pax: nextPax,
+                    reservation_date: nextDate,
+                    reservation_time: nextTime,
+                    environment_id: nextEnvironmentId,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', existing.id)
+                .select(`
+                    id, reservation_date, reservation_time, pax, status, confirmation_code,
+                    environments(id, name),
+                    units(id, name, address),
+                    customers(name, phone, email)
+                `)
+                .single()
 
         if (errUpdate || !updatedReservation) {
             return NextResponse.json({ error: 'Falha ao atualizar reserva' }, { status: 500 })
@@ -109,6 +153,9 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ reservation: updatedReservation }, { status: 200 })
 
     } catch (err) {
+        if (err instanceof ReservationValidationError) {
+            return NextResponse.json({ error: err.message }, { status: err.status })
+        }
         console.error('PATCH client reservation error:', err)
         return NextResponse.json({ error: 'Erro interno de processamento.' }, { status: 500 })
     }

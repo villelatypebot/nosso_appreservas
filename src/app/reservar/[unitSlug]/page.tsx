@@ -76,14 +76,18 @@ async function getUnitData(unitSlug: string) {
             return null
         }
 
-        // Try both column names (capacity or max_capacity) for compatibility
+        // Load all columns so we can support both legacy and CRM schemas.
         let environments: { id: string; name: string; capacity: number }[] = []
-        const { data: envs } = await supabase
+        const { data: envs, error: envErr } = await supabase
             .from('environments')
-            .select('id, name, capacity, max_capacity')
+            .select('*')
             .eq('unit_id', unit.id)
             .eq('is_active', true)
             .order('name')
+
+        if (envErr) {
+            console.error('Environment fetch error:', envErr.message)
+        }
 
         if (envs && envs.length > 0) {
             environments = envs.map((e: Record<string, unknown>) => ({

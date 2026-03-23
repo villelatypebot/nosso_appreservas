@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyReservationEvent } from '@/lib/push'
+import {
+    buildReservationCustomData,
+    ReservationValidationError,
+    validateReservationRequest,
+} from '@/lib/reservation-validation'
 
 function getAdminClient() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,46 +15,120 @@ function getAdminClient() {
     )
 }
 
+function shouldFallbackToAppValidation(error: { code?: string; message?: string } | null) {
+    if (!error) return false
+    return error.code === 'PGRST202' || error.message?.includes('create_reservation_safely') || false
+}
+
+async function createReservationFallback(
+    supabase: ReturnType<typeof getAdminClient>,
+    params: {
+        unitId: string
+        environmentId?: string | null
+        pax: number
+        date: string
+        time: string
+        name: string
+        email?: string | null
+        phone: string
+        notes?: string | null
+        occasion?: string | null
+    }
+) {
+    const { data: customer, error: custErr } = await supabase
+        .from('customers')
+        .upsert(
+            { name: params.name, email: params.email || null, phone: params.phone },
+            { onConflict: 'phone' }
+        )
+        .select('id')
+        .single()
+
+    if (custErr || !customer) {
+        console.error('Customer upsert error:', custErr)
+        throw new ReservationValidationError('Erro ao registrar cliente.', 500)
+    }
+
+    const { data: reservation, error: resErr } = await supabase
+        .from('reservations')
+        .insert({
+            unit_id: params.unitId,
+            environment_id: params.environmentId || null,
+            customer_id: customer.id,
+            reservation_date: params.date,
+            reservation_time: params.time,
+            pax: params.pax,
+            status: 'confirmed',
+            notes: params.notes || null,
+            source: 'online',
+            custom_data: buildReservationCustomData(params.occasion),
+        })
+        .select('id, confirmation_code, reservation_date, reservation_time, pax, status')
+        .single()
+
+    if (resErr || !reservation) {
+        console.error('Reservation insert error:', resErr)
+        throw new ReservationValidationError('Erro ao criar reserva.', 500)
+    }
+
+    return reservation
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { unitId, environmentId, pax, date, time, name, email, phone } = body
+        const { unitId, environmentId, pax, date, time, name, email, phone, notes, occasion } = body
 
         if (!unitId || !pax || !date || !time || !name || !phone) {
             return NextResponse.json({ error: 'Campos obrigatórios faltando.' }, { status: 400 })
         }
 
         const supabase = getAdminClient()
+        const numericPax = Number(pax)
+        const { normalizedTime } = await validateReservationRequest(supabase, {
+            unitId,
+            environmentId: environmentId || null,
+            pax: numericPax,
+            date,
+            time,
+        })
 
-        // Upsert customer (by phone)
-        const { data: customer, error: custErr } = await supabase
-            .from('customers')
-            .upsert({ name, email: email || null, phone }, { onConflict: 'phone' })
-            .select('id')
-            .single()
-
-        if (custErr || !customer) {
-            return NextResponse.json({ error: 'Erro ao registrar cliente.' }, { status: 500 })
-        }
-
-        // Create reservation
-        const { data: reservation, error: resErr } = await supabase
-            .from('reservations')
-            .insert({
-                unit_id: unitId,
-                environment_id: environmentId || null,
-                customer_id: customer.id,
-                reservation_date: date,
-                reservation_time: time,
-                pax: Number(pax),
-                status: 'confirmed',
-                source: 'online',
+        const { data: rpcReservation, error: rpcError } = await supabase
+            .rpc('create_reservation_safely', {
+                p_unit_id: unitId,
+                p_environment_id: environmentId || null,
+                p_pax: numericPax,
+                p_reservation_date: date,
+                p_reservation_time: normalizedTime,
+                p_name: name,
+                p_email: email || null,
+                p_phone: phone,
+                p_notes: notes || null,
+                p_occasion: occasion || null,
             })
-            .select('id, confirmation_code, reservation_date, reservation_time, pax, status')
             .single()
 
-        if (resErr || !reservation) {
-            return NextResponse.json({ error: 'Erro ao criar reserva.' }, { status: 500 })
+        let reservation = rpcReservation
+
+        if (rpcError) {
+            if (shouldFallbackToAppValidation(rpcError)) {
+                console.warn('[Reservations] RPC create_reservation_safely not found. Falling back to app-side validation.')
+                reservation = await createReservationFallback(supabase, {
+                    unitId,
+                    environmentId: environmentId || null,
+                    pax: numericPax,
+                    date,
+                    time: normalizedTime,
+                    name,
+                    email: email || null,
+                    phone,
+                    notes: notes || null,
+                    occasion: occasion || null,
+                })
+            } else {
+                console.error('create_reservation_safely rpc error:', rpcError)
+                return NextResponse.json({ error: rpcError.message || 'Erro ao criar reserva.' }, { status: 400 })
+            }
         }
 
         // Trigger webhooks async (fire and forget)
@@ -73,6 +152,9 @@ export async function POST(request: Request) {
 
         return NextResponse.json(reservation, { status: 201 })
     } catch (err) {
+        if (err instanceof ReservationValidationError) {
+            return NextResponse.json({ error: err.message }, { status: err.status })
+        }
         console.error('POST /api/reservations error:', err)
         return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
     }
@@ -83,7 +165,6 @@ export async function GET(request: Request) {
     const unitId = searchParams.get('unitId')
     const date = searchParams.get('date')
     const status = searchParams.get('status')
-    const search = searchParams.get('search')
     const page = Number(searchParams.get('page') || '1')
     const pageSize = 20
 
@@ -169,9 +250,8 @@ export async function PATCH(request: Request) {
     return NextResponse.json(data)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function triggerWebhooks(
-    supabase: ReturnType<typeof createClient<any>>,
+    supabase: ReturnType<typeof getAdminClient>,
     unitId: string,
     event: string,
     payload: Record<string, unknown>
@@ -193,7 +273,7 @@ async function triggerWebhooks(
                 data: payload,
             })
 
-            let headers: Record<string, string> = {
+            const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
                 'X-FullHouse-Event': event,
                 'User-Agent': 'FullHouse-Webhooks/1.0',

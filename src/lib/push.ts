@@ -1,12 +1,24 @@
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 
-// Configure VAPID
-webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:fullhouse@rocketmediabrasil.com',
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-)
+let vapidConfigured = false
+
+function ensureVapidConfigured() {
+    if (vapidConfigured) return true
+
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    const privateKey = process.env.VAPID_PRIVATE_KEY
+    const subject = process.env.VAPID_SUBJECT || 'mailto:fullhouse@rocketmediabrasil.com'
+
+    if (!publicKey || !privateKey) {
+        console.warn('[Push] VAPID keys are missing. Push notifications are disabled.')
+        return false
+    }
+
+    webpush.setVapidDetails(subject, publicKey, privateKey)
+    vapidConfigured = true
+    return true
+}
 
 function getAdminClient() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +39,8 @@ interface NotificationPayload {
  * Send push notification to all subscribed admin users
  */
 export async function sendPushToAllAdmins(payload: NotificationPayload) {
+    if (!ensureVapidConfigured()) return
+
     const supabase = getAdminClient()
 
     // Get all push subscriptions
@@ -94,7 +108,7 @@ export async function notifyReservationEvent(
     }
 ) {
     // Format date to DD/MM
-    const [year, month, day] = data.date.split('-')
+    const [, month, day] = data.date.split('-')
     const formattedDate = `${day}/${month}`
 
     let title: string
