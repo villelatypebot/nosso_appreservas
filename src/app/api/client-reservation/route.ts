@@ -7,6 +7,10 @@ import {
     validateReservationRequest,
 } from '@/lib/reservation-validation'
 
+type ReservationRpcUpdateResult = {
+    id: string
+} | null
+
 function getAdminClient() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return createClient<any>(
@@ -92,7 +96,7 @@ export async function PATCH(request: Request) {
             excludeReservationId: existing.id,
         })
 
-        const { data: rpcUpdated, error: rpcError } = await supabase
+        const { data: rpcUpdatedRaw, error: rpcError } = await supabase
             .rpc('update_reservation_safely', {
                 p_confirmation_code: code.toUpperCase().trim(),
                 p_pax: nextPax,
@@ -101,6 +105,8 @@ export async function PATCH(request: Request) {
                 p_environment_id: nextEnvironmentId,
             })
             .single()
+
+        const rpcUpdated = rpcUpdatedRaw as ReservationRpcUpdateResult
 
         if (rpcError && !shouldFallbackToAppValidation(rpcError)) {
             console.error('update_reservation_safely rpc error:', rpcError)

@@ -7,6 +7,15 @@ import {
     validateReservationRequest,
 } from '@/lib/reservation-validation'
 
+type ReservationRpcCreateResult = {
+    id: string
+    confirmation_code: string
+    reservation_date: string
+    reservation_time: string
+    pax: number
+    status: string
+} | null
+
 function getAdminClient() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return createClient<any>(
@@ -93,7 +102,7 @@ export async function POST(request: Request) {
             time,
         })
 
-        const { data: rpcReservation, error: rpcError } = await supabase
+        const { data: rpcReservationRaw, error: rpcError } = await supabase
             .rpc('create_reservation_safely', {
                 p_unit_id: unitId,
                 p_environment_id: environmentId || null,
@@ -108,7 +117,7 @@ export async function POST(request: Request) {
             })
             .single()
 
-        let reservation = rpcReservation
+        let reservation = rpcReservationRaw as ReservationRpcCreateResult
 
         if (rpcError) {
             if (shouldFallbackToAppValidation(rpcError)) {
@@ -129,6 +138,10 @@ export async function POST(request: Request) {
                 console.error('create_reservation_safely rpc error:', rpcError)
                 return NextResponse.json({ error: rpcError.message || 'Erro ao criar reserva.' }, { status: 400 })
             }
+        }
+
+        if (!reservation) {
+            throw new ReservationValidationError('Erro ao criar reserva.', 500)
         }
 
         // Trigger webhooks async (fire and forget)
