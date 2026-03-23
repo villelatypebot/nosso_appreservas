@@ -65,6 +65,20 @@ function clampPax(value: number, minPax: number, maxPax: number) {
     return Math.min(maxPax, Math.max(minPax, Math.floor(value)))
 }
 
+function formatWhatsappDisplay(phone: string) {
+    const digits = phone.replace(/\D/g, '')
+
+    if (digits.length === 11) {
+        return `${digits.slice(0, 2)} ${digits.slice(2, 7)} ${digits.slice(7)}`
+    }
+
+    if (digits.length === 10) {
+        return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`
+    }
+
+    return digits || phone
+}
+
 // ─── Animations Variants ─────────────────────────────
 const slideVariants: any = {
     enter: (direction: number) => ({
@@ -525,6 +539,8 @@ function Step3({ state, onChange }: { state: WizardState; onChange: (k: keyof Wi
 // ─── Step 4: Success Celebration ──────────────────────
 function Step4({ code, phone }: { code: string, phone: string }) {
     const [copied, setCopied] = useState(false)
+    const displayPhone = formatWhatsappDisplay(phone)
+
     const copy = () => {
         navigator.clipboard.writeText(code)
         setCopied(true)
@@ -559,7 +575,7 @@ function Step4({ code, phone }: { code: string, phone: string }) {
                     {copied ? <Check size={24} color="#22c55e" /> : <Copy size={24} color="rgba(255,255,255,0.2)" />}
                 </motion.div>
                 <p style={{ fontSize: '13px', color: '#22c55e', marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                    <Check size={16} /> Enviado agora para o seu WhatsApp ({phone})
+                    <Check size={16} /> Reserva enviada agora no seu WhatsApp {displayPhone}.
                 </p>
             </div>
         </motion.div>

@@ -183,11 +183,7 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
 
                 {/* Bottom actions */}
                 <div style={{ borderTop: '1px solid var(--brand-border)', paddingTop: '12px' }}>
-                    {!collapsed ? (
-                        <PushNotificationToggle />
-                    ) : (
-                        <PushNotificationToggle />
-                    )}
+                    <PushNotificationToggle collapsed={collapsed} />
                     <button
                         className="sidebar-item"
                         style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger)' }}

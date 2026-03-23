@@ -35,11 +35,28 @@ interface NotificationPayload {
     tag?: string
 }
 
+export interface PushDispatchResult {
+    sent: number
+    failed: number
+    total: number
+    skipped?: boolean
+    reason?: 'missing_vapid' | 'no_subscriptions' | 'table_missing' | 'fetch_error'
+    errors?: string[]
+}
+
 /**
  * Send push notification to all subscribed admin users
  */
-export async function sendPushToAllAdmins(payload: NotificationPayload) {
-    if (!ensureVapidConfigured()) return
+export async function sendPushToAllAdmins(payload: NotificationPayload): Promise<PushDispatchResult> {
+    if (!ensureVapidConfigured()) {
+        return {
+            sent: 0,
+            failed: 0,
+            total: 0,
+            skipped: true,
+            reason: 'missing_vapid',
+        }
+    }
 
     const supabase = getAdminClient()
 
@@ -52,15 +69,35 @@ export async function sendPushToAllAdmins(payload: NotificationPayload) {
         // Table might not exist yet — graceful degradation
         if (error.message.includes('does not exist')) {
             console.log('[Push] Table push_subscriptions not found. Run migration 002.')
+            return {
+                sent: 0,
+                failed: 0,
+                total: 0,
+                skipped: true,
+                reason: 'table_missing',
+            }
         } else {
             console.log('[Push] Error fetching subscriptions:', error.message)
+            return {
+                sent: 0,
+                failed: 0,
+                total: 0,
+                skipped: true,
+                reason: 'fetch_error',
+                errors: [error.message],
+            }
         }
-        return
     }
 
     if (!subscriptions || subscriptions.length === 0) {
         console.log('[Push] No subscriptions found')
-        return
+        return {
+            sent: 0,
+            failed: 0,
+            total: 0,
+            skipped: true,
+            reason: 'no_subscriptions',
+        }
     }
 
     const results = await Promise.allSettled(
@@ -92,7 +129,25 @@ export async function sendPushToAllAdmins(payload: NotificationPayload) {
 
     const sent = results.filter(r => r.status === 'fulfilled').length
     const failed = results.filter(r => r.status === 'rejected').length
+    const errors = results
+        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+        .map((result) => {
+            const reason = result.reason
+            if (reason && typeof reason === 'object') {
+                const statusCode = 'statusCode' in reason ? String((reason as { statusCode?: number }).statusCode) : null
+                const message = 'message' in reason ? String((reason as { message?: string }).message) : 'Erro desconhecido no envio do push.'
+                return statusCode ? `${statusCode}: ${message}` : message
+            }
+            return String(reason)
+        })
+
     console.log(`[Push] Sent: ${sent}, Failed: ${failed}`)
+    return {
+        sent,
+        failed,
+        total: subscriptions.length,
+        errors,
+    }
 }
 
 /**
@@ -133,7 +188,7 @@ export async function notifyReservationEvent(
             break
     }
 
-    await sendPushToAllAdmins({
+    return await sendPushToAllAdmins({
         title,
         body,
         url: '/admin/dashboard',
