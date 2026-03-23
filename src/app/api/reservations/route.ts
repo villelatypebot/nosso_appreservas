@@ -116,6 +116,7 @@ export async function POST(request: Request) {
             pax: numericPax,
             date,
             time,
+            phone,
         })
 
         const { data: rpcReservationRaw, error: rpcError } = await supabase

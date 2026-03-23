@@ -25,6 +25,7 @@ interface ReservationValidationInput {
     pax: number
     date: string
     time: string
+    phone?: string | null
     excludeReservationId?: string | null
 }
 
@@ -60,6 +61,37 @@ function getSaoPauloToday() {
     }).format(new Date())
 
     return new Date(`${localDate}T00:00:00-03:00`)
+}
+
+function formatDateForQuery(date: Date) {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: SAO_PAULO_TIME_ZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(date)
+}
+
+function getWeekRange(date: string) {
+    const requestedDate = new Date(`${date}T00:00:00-03:00`)
+
+    if (Number.isNaN(requestedDate.getTime())) {
+        throw new ReservationValidationError('Data invalida para verificacao semanal.')
+    }
+
+    const weekDay = requestedDate.getUTCDay()
+    const diffToMonday = weekDay === 0 ? -6 : 1 - weekDay
+
+    const weekStart = new Date(requestedDate)
+    weekStart.setUTCDate(weekStart.getUTCDate() + diffToMonday)
+
+    const weekEnd = new Date(weekStart)
+    weekEnd.setUTCDate(weekStart.getUTCDate() + 6)
+
+    return {
+        start: formatDateForQuery(weekStart),
+        end: formatDateForQuery(weekEnd),
+    }
 }
 
 function isBlockedForTime(block: Pick<DateBlockRow, 'start_time' | 'end_time'>, requestedMinutes: number) {
@@ -195,6 +227,60 @@ async function fetchReservedPax(
     return (data || []).reduce((sum, reservation) => sum + Number(reservation.pax || 0), 0)
 }
 
+export async function findWeeklyReservationByPhone(
+    supabase: SupabaseClient,
+    input: {
+        phone: string
+        date: string
+        excludeReservationId?: string | null
+    }
+) {
+    const normalizedPhone = input.phone.trim()
+
+    if (!normalizedPhone) return null
+
+    const { data: customer, error: customerError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', normalizedPhone)
+        .maybeSingle()
+
+    if (customerError) {
+        throw new ReservationValidationError('Erro ao verificar reservas do telefone informado.', 500)
+    }
+
+    if (!customer) return null
+
+    const weekRange = getWeekRange(input.date)
+
+    let query = supabase
+        .from('reservations')
+        .select('id, reservation_date, confirmation_code, units(name)')
+        .eq('customer_id', customer.id)
+        .gte('reservation_date', weekRange.start)
+        .lte('reservation_date', weekRange.end)
+        .in('status', ACTIVE_RESERVATION_STATUSES)
+        .order('reservation_date', { ascending: true })
+        .limit(1)
+
+    if (input.excludeReservationId) {
+        query = query.neq('id', input.excludeReservationId)
+    }
+
+    const { data, error } = await query.maybeSingle()
+
+    if (error) {
+        throw new ReservationValidationError('Erro ao verificar reservas do telefone informado.', 500)
+    }
+
+    return data as {
+        id: string
+        reservation_date: string
+        confirmation_code: string
+        units?: { name?: string } | null
+    } | null
+}
+
 export async function validateReservationRequest(
     supabase: SupabaseClient,
     input: ReservationValidationInput
@@ -257,6 +343,18 @@ export async function validateReservationRequest(
 
     if (input.environmentId && !environment) {
         throw new ReservationValidationError('O ambiente selecionado nao esta disponivel nesta unidade.')
+    }
+
+    if (input.phone) {
+        const existingReservation = await findWeeklyReservationByPhone(supabase, {
+            phone: input.phone,
+            date: input.date,
+            excludeReservationId: input.excludeReservationId,
+        })
+
+        if (existingReservation) {
+            throw new ReservationValidationError('Voce ja possui uma reserva nessa mesma semana.')
+        }
     }
 
     const environmentCapacity = getEnvironmentCapacity(environment)

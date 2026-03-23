@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Check, Users, Calendar, Clock, Phone, Mail, User, Loader2, Copy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Users, Calendar, Clock, Phone, User, Loader2, Copy, AlertTriangle } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────
 interface Unit {
@@ -504,7 +504,17 @@ const DarkInput = ({ icon: Icon, label, ...props }: any) => (
     </div>
 )
 
-function Step3({ state, onChange }: { state: WizardState; onChange: (k: keyof WizardState, v: unknown) => void }) {
+function Step3({
+    state,
+    onChange,
+    checkingWeeklyReservation,
+    hasWeeklyReservationConflict,
+}: {
+    state: WizardState
+    onChange: (k: keyof WizardState, v: unknown) => void
+    checkingWeeklyReservation: boolean
+    hasWeeklyReservationConflict: boolean
+}) {
     const formatPhone = (val: string) => {
         const num = val.replace(/\D/g, '')
         if (num.length <= 2) return num
@@ -516,7 +526,51 @@ function Step3({ state, onChange }: { state: WizardState; onChange: (k: keyof Wi
         <div>
             <DarkInput icon={User} label="Nome completo" placeholder="Ex: Lucas Villela" value={state.name} onChange={(e: any) => onChange('name', e.target.value)} />
             <DarkInput icon={Phone} label="WhatsApp" placeholder="(21) 90000-0000" type="tel" value={state.phone} onChange={(e: any) => onChange('phone', formatPhone(e.target.value))} />
-            <DarkInput icon={Mail} label="E-mail (Para Notinha Fiscal, opcional)" type="email" placeholder="lucas@apple.com" value={state.email} onChange={(e: any) => onChange('email', e.target.value)} />
+
+            {checkingWeeklyReservation && (
+                <button
+                    type="button"
+                    disabled
+                    style={{
+                        width: '100%',
+                        marginBottom: '16px',
+                        padding: '14px 16px',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        background: 'rgba(255,255,255,0.03)',
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                    }}
+                >
+                    Verificando reservas deste telefone...
+                </button>
+            )}
+
+            {hasWeeklyReservationConflict && (
+                <button
+                    type="button"
+                    disabled
+                    style={{
+                        width: '100%',
+                        marginBottom: '18px',
+                        padding: '14px 16px',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(245,158,11,0.4)',
+                        background: 'rgba(245,158,11,0.12)',
+                        color: '#fcd34d',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                    }}
+                >
+                    <AlertTriangle size={16} />
+                    Você já possui uma reserva nessa mesma semana.
+                </button>
+            )}
 
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px', marginTop: '4px' }}>
                 Alguma nota secreta para nossa equipe?
@@ -587,6 +641,8 @@ export default function ReservationWizard({ unit, environments, reservationRules
     const [[step, direction], setPage] = useState([1, 0])
     const [loading, setLoading] = useState(false)
     const [confirmCode, setConfirmCode] = useState('')
+    const [checkingWeeklyReservation, setCheckingWeeklyReservation] = useState(false)
+    const [hasWeeklyReservationConflict, setHasWeeklyReservationConflict] = useState(false)
     const normalizedReservationRules = useMemo(() => {
         const minPax = Math.max(1, Number(reservationRules?.minPax ?? DEFAULT_RESERVATION_RULES.minPax))
         const maxPax = Math.max(minPax, Number(reservationRules?.maxPax ?? DEFAULT_RESERVATION_RULES.maxPax))
@@ -601,10 +657,54 @@ export default function ReservationWizard({ unit, environments, reservationRules
 
     const change = (key: keyof WizardState, value: unknown) => setState(s => ({ ...s, [key]: value }))
 
+    useEffect(() => {
+        if (step !== 3 || state.phone.length < 14 || !state.date) {
+            setCheckingWeeklyReservation(false)
+            setHasWeeklyReservationConflict(false)
+            return
+        }
+
+        let cancelled = false
+        const timeoutId = window.setTimeout(async () => {
+            setCheckingWeeklyReservation(true)
+
+            try {
+                const params = new URLSearchParams({
+                    phone: state.phone,
+                    date: state.date,
+                })
+                const response = await fetch(`/api/reservations/weekly-check?${params.toString()}`)
+                const data = await response.json()
+
+                if (cancelled) return
+
+                if (!response.ok) {
+                    setHasWeeklyReservationConflict(false)
+                    return
+                }
+
+                setHasWeeklyReservationConflict(Boolean(data.hasReservation))
+            } catch {
+                if (!cancelled) {
+                    setHasWeeklyReservationConflict(false)
+                }
+            } finally {
+                if (!cancelled) {
+                    setCheckingWeeklyReservation(false)
+                }
+            }
+        }, 300)
+
+        return () => {
+            cancelled = true
+            window.clearTimeout(timeoutId)
+        }
+    }, [step, state.phone, state.date])
+
     const canAdvance = () => {
         if (step === 1) return state.pax >= normalizedReservationRules.minPax && state.pax <= normalizedReservationRules.maxPax && !!state.date && !!state.time
         if (step === 2) return true
-        if (step === 3) return !!state.name && !!state.phone && state.phone.length >= 14
+        if (step === 3) return !!state.name && !!state.phone && state.phone.length >= 14 && !checkingWeeklyReservation && !hasWeeklyReservationConflict
         return false
     }
 
@@ -661,7 +761,14 @@ export default function ReservationWizard({ unit, environments, reservationRules
                     >
                         {step === 1 && <Step1 state={state} reservationRules={normalizedReservationRules} onChange={change} />}
                         {step === 2 && <Step2 state={state} environments={environments} onChange={change} />}
-                        {step === 3 && <Step3 state={state} onChange={change} />}
+                        {step === 3 && (
+                            <Step3
+                                state={state}
+                                onChange={change}
+                                checkingWeeklyReservation={checkingWeeklyReservation}
+                                hasWeeklyReservationConflict={hasWeeklyReservationConflict}
+                            />
+                        )}
                         {step === 4 && <Step4 code={confirmCode} phone={state.phone} />}
                     </motion.div>
                 </AnimatePresence>

@@ -72,13 +72,16 @@ export async function PATCH(request: Request) {
         // 1. Verificamos se a reserva bate com o código
         const { data: existing, error: errExist } = await supabase
             .from('reservations')
-            .select('id, status, unit_id, reservation_date, reservation_time, pax, environment_id')
+            .select('id, status, unit_id, reservation_date, reservation_time, pax, environment_id, customers(phone)')
             .eq('confirmation_code', code.toUpperCase().trim())
             .single()
 
         if (errExist || !existing) {
             return NextResponse.json({ error: 'Reserva não encontrada.' }, { status: 404 })
         }
+
+        const rawCustomer = existing.customers
+        const existingCustomer = (Array.isArray(rawCustomer) ? rawCustomer[0] : rawCustomer) as { phone?: string } | null
 
         // Se estiver cancelada ou finalizada, talvez não deveríamos deixar atualizar
         if (existing.status !== 'pending' && existing.status !== 'confirmed') {
@@ -96,6 +99,7 @@ export async function PATCH(request: Request) {
             pax: nextPax,
             date: nextDate,
             time: nextTime,
+            phone: existingCustomer?.phone || null,
             excludeReservationId: existing.id,
         })
 
@@ -150,8 +154,8 @@ export async function PATCH(request: Request) {
         }
 
         // Send push notification to admins about the edit (fire and forget)
-        const rawCustomer = updatedReservation.customers
-        const customer = (Array.isArray(rawCustomer) ? rawCustomer[0] : rawCustomer) as { name: string } | null
+        const updatedCustomerRaw = updatedReservation.customers
+        const customer = (Array.isArray(updatedCustomerRaw) ? updatedCustomerRaw[0] : updatedCustomerRaw) as { name?: string } | null
         const rawUnit = updatedReservation.units
         const unit = (Array.isArray(rawUnit) ? rawUnit[0] : rawUnit) as { name?: string } | null
         notifyReservationEvent('updated', {
