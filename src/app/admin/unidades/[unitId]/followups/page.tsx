@@ -27,6 +27,28 @@ type GeneratorResult = {
     }>
 }
 
+type AssistantResult = {
+    intent: 'availability_check' | 'link_request' | 'general_support'
+    action:
+    | 'clarify_unit'
+    | 'ask_missing_details'
+    | 'send_reservation_link'
+    | 'confirm_availability_and_send_link'
+    | 'offer_alternative_times'
+    | 'inform_unavailable'
+    | 'continue_support'
+    message: string
+    reservationLink: string | null
+    missingFields: string[]
+    availability: {
+        checked: boolean
+        isAvailable: boolean | null
+        reason: string | null
+        operatingTimes: string[]
+        availableTimes: string[]
+    }
+}
+
 const TRIGGER_EVENTS = [
     { value: 'after_inquiry', label: 'Apos duvida / interesse' },
     { value: 'after_link_sent', label: 'Apos envio do link' },
@@ -142,6 +164,8 @@ export default function FollowUpsPage() {
     const [seeding, setSeeding] = useState(false)
     const [generatorLoading, setGeneratorLoading] = useState(false)
     const [generatorResult, setGeneratorResult] = useState<GeneratorResult | null>(null)
+    const [assistantLoading, setAssistantLoading] = useState(false)
+    const [assistantResult, setAssistantResult] = useState<AssistantResult | null>(null)
     const [form, setForm] = useState(DEFAULT_RULE_FORM)
     const [generatorForm, setGeneratorForm] = useState(DEFAULT_GENERATOR_FORM)
 
@@ -244,6 +268,34 @@ export default function FollowUpsPage() {
         setGeneratorLoading(false)
     }
 
+    const runAssistant = async () => {
+        setAssistantLoading(true)
+        setAssistantResult(null)
+
+        const response = await fetch('/api/conversation/assist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                customerName: generatorForm.customerName,
+                unitName: generatorForm.unitName,
+                reservationDate: generatorForm.reservationDate || null,
+                pax: Number(generatorForm.pax) || null,
+                reservationLink: generatorForm.reservationLink || null,
+                messageHistoryText: generatorForm.messageHistoryText,
+            }),
+        })
+
+        const json = await response.json()
+        if (!response.ok) {
+            alert(json.error || 'Nao foi possivel rodar o assistente.')
+            setAssistantLoading(false)
+            return
+        }
+
+        setAssistantResult(json)
+        setAssistantLoading(false)
+    }
+
     const copyText = async (text: string) => {
         try {
             await navigator.clipboard.writeText(text)
@@ -299,9 +351,14 @@ export default function FollowUpsPage() {
                             Cole os ultimos chats e o sistema gera mensagens diferentes, com contexto e sem repetir a ultima abordagem.
                         </p>
                     </div>
-                    <button className="fh-btn fh-btn-outline fh-btn-sm" onClick={generateSuggestions} disabled={generatorLoading}>
-                        {generatorLoading ? <><Loader2 size={14} />Gerando...</> : <><Sparkles size={14} />Gerar 3 sugestoes</>}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <button className="fh-btn fh-btn-outline fh-btn-sm" onClick={generateSuggestions} disabled={generatorLoading}>
+                            {generatorLoading ? <><Loader2 size={14} />Gerando...</> : <><Sparkles size={14} />Gerar 3 sugestoes</>}
+                        </button>
+                        <button className="fh-btn fh-btn-outline fh-btn-sm" onClick={runAssistant} disabled={assistantLoading}>
+                            {assistantLoading ? <><Loader2 size={14} />Analisando...</> : 'Testar resposta operacional'}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="admin-form-grid-2" style={{ marginBottom: '14px' }}>
@@ -431,6 +488,50 @@ export default function FollowUpsPage() {
                                     </p>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {assistantResult && (
+                    <div style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{
+                            padding: '12px 14px',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                        }}>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                                <span className="fh-badge" style={{ fontSize: '10px' }}>Acao: {assistantResult.action}</span>
+                                <span className="fh-badge" style={{ fontSize: '10px' }}>Intencao: {assistantResult.intent}</span>
+                                {assistantResult.availability.checked && (
+                                    <span className="fh-badge" style={{ fontSize: '10px' }}>
+                                        {assistantResult.availability.isAvailable ? 'Disponibilidade positiva' : 'Disponibilidade negativa'}
+                                    </span>
+                                )}
+                            </div>
+                            <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.6, color: 'var(--text-primary)' }}>
+                                {assistantResult.message}
+                            </p>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
+                                <button className="fh-btn fh-btn-outline fh-btn-sm" onClick={() => copyText(assistantResult.message)}>
+                                    <Copy size={12} /> Copiar resposta
+                                </button>
+                                {assistantResult.reservationLink && (
+                                    <button className="fh-btn fh-btn-outline fh-btn-sm" onClick={() => copyText(assistantResult.reservationLink || '')}>
+                                        <Copy size={12} /> Copiar link
+                                    </button>
+                                )}
+                            </div>
+                            {(assistantResult.missingFields.length > 0 || assistantResult.availability.reason) && (
+                                <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                                    {assistantResult.missingFields.length > 0 && (
+                                        <div>Faltando para resposta mais precisa: {assistantResult.missingFields.join(', ')}</div>
+                                    )}
+                                    {assistantResult.availability.reason && (
+                                        <div>{assistantResult.availability.reason}</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
