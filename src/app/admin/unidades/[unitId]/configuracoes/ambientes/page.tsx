@@ -18,7 +18,7 @@ interface Environment {
 export default function AmbientesPage() {
     const params = useParams()
     const unitId = params.unitId as string
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
 
     const [envs, setEnvs] = useState<Environment[]>([])
     const [loading, setLoading] = useState(true)
@@ -48,9 +48,15 @@ export default function AmbientesPage() {
             .order('name')
         setEnvs(data || [])
         setLoading(false)
-    }, [unitId])
+    }, [supabase, unitId])
 
-    useEffect(() => { load() }, [load])
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            void load()
+        }, 0)
+
+        return () => window.clearTimeout(timer)
+    }, [load])
 
     const handleCreate = async () => {
         if (!form.name.trim()) return

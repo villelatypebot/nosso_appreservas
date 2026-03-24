@@ -48,7 +48,13 @@ export default function ReservasPage() {
         setLoading(false)
     }, [unitId, page, filterStatus, filterDate, search])
 
-    useEffect(() => { load() }, [load])
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            void load()
+        }, 0)
+
+        return () => window.clearTimeout(timer)
+    }, [load])
 
     const updateStatus = async (id: string, status: ReservationStatus) => {
         setActionLoading(id)

@@ -44,7 +44,13 @@ export default function UsuariosPage() {
         setLoading(false)
     }, [])
 
-    useEffect(() => { loadUsers() }, [loadUsers])
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            void loadUsers()
+        }, 0)
+
+        return () => window.clearTimeout(timer)
+    }, [loadUsers])
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()

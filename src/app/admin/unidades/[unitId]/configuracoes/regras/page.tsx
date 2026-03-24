@@ -19,7 +19,7 @@ interface Rules {
 export default function RegrasPage() {
     const params = useParams()
     const unitId = params.unitId as string
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
 
     const [rules, setRules] = useState<Rules>({
         unit_id: unitId,
@@ -45,9 +45,15 @@ export default function RegrasPage() {
             setRules(data)
         }
         setLoading(false)
-    }, [unitId])
+    }, [supabase, unitId])
 
-    useEffect(() => { load() }, [load])
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            void load()
+        }, 0)
+
+        return () => window.clearTimeout(timer)
+    }, [load])
 
     const handleSave = async () => {
         setSaving(true)

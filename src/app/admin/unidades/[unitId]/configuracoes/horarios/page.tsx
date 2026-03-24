@@ -10,7 +10,7 @@ import type { TimeSlot } from '@/lib/supabase/types'
 export default function HorariosPage() {
     const params = useParams()
     const unitId = params.unitId as string
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
 
     const [slots, setSlots] = useState<TimeSlot[]>([])
     const [loading, setLoading] = useState(true)
@@ -29,9 +29,15 @@ export default function HorariosPage() {
         const { data } = await supabase.from('time_slots').select('*').eq('unit_id', unitId).order('day_of_week').order('open_time')
         setSlots(data || [])
         setLoading(false)
-    }, [unitId])
+    }, [supabase, unitId])
 
-    useEffect(() => { load() }, [load])
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            void load()
+        }, 0)
+
+        return () => window.clearTimeout(timer)
+    }, [load])
 
     const save = async () => {
         setSaving('new')

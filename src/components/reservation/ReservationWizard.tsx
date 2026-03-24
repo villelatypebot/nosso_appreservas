@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Check, Users, Calendar, Clock, Phone, User, Loader2, Copy, AlertTriangle } from 'lucide-react'
+import { motion, AnimatePresence, type Variants } from 'framer-motion'
+import { ArrowLeft, ArrowRight, Check, Users, Calendar, Clock, Phone, User, Loader2, Copy, AlertTriangle, type LucideIcon } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────
 interface Unit {
@@ -80,7 +80,7 @@ function formatWhatsappDisplay(phone: string) {
 }
 
 // ─── Animations Variants ─────────────────────────────
-const slideVariants: any = {
+const slideVariants = {
     enter: (direction: number) => ({
         x: direction > 0 ? 30 : -30,
         opacity: 0,
@@ -101,7 +101,7 @@ const slideVariants: any = {
         scale: 0.98,
         transition: { type: 'spring', stiffness: 300, damping: 25 }
     })
-}
+} satisfies Variants
 
 // ─── Shared UI Logic ─────────────────────────────────
 const GlassCard = ({ children, style }: { children: React.ReactNode, style?: React.CSSProperties }) => (
@@ -119,7 +119,7 @@ const GlassCard = ({ children, style }: { children: React.ReactNode, style?: Rea
     </div>
 )
 
-const ThemedLabel = ({ children, icon: Icon }: { children: React.ReactNode, icon?: any }) => (
+const ThemedLabel = ({ children, icon: Icon }: { children: React.ReactNode, icon?: LucideIcon }) => (
     <label style={{
         display: 'flex', alignItems: 'center', gap: '8px',
         fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.4)',
@@ -244,12 +244,16 @@ function Step1({
     ))
 
     useEffect(() => {
-        if (state.pax > quickPaxLimit || minPax > quickPaxLimit) {
-            setCustomPax(state.pax ? String(state.pax) : '')
-            return
-        }
+        const timer = window.setTimeout(() => {
+            if (state.pax > quickPaxLimit || minPax > quickPaxLimit) {
+                setCustomPax(state.pax ? String(state.pax) : '')
+                return
+            }
 
-        setCustomPax('')
+            setCustomPax('')
+        }, 0)
+
+        return () => window.clearTimeout(timer)
     }, [state.pax, minPax, quickPaxLimit])
 
     const handleCustomPaxChange = (rawValue: string) => {
@@ -479,7 +483,12 @@ function Step2({ state, environments, onChange }: {
 }
 
 // ─── Step 3: Customer Data ────────────────────────────
-const DarkInput = ({ icon: Icon, label, ...props }: any) => (
+type DarkInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+    icon?: LucideIcon
+    label: string
+}
+
+const DarkInput = ({ icon: Icon, label, style, ...props }: DarkInputProps) => (
     <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>
             {label}
@@ -495,10 +504,16 @@ const DarkInput = ({ icon: Icon, label, ...props }: any) => (
                     borderRadius: '16px',
                     color: '#fff', fontSize: '15px', fontWeight: 500,
                     outline: 'none', transition: 'all 0.2s',
-                    ...props.style
+                    ...style
                 }}
-                onFocus={(e: any) => { e.currentTarget.style.borderColor = '#F47920'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-                onBlur={(e: any) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                onFocus={(event: React.FocusEvent<HTMLInputElement>) => {
+                    event.currentTarget.style.borderColor = '#F47920'
+                    event.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                }}
+                onBlur={(event: React.FocusEvent<HTMLInputElement>) => {
+                    event.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+                    event.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+                }}
             />
         </div>
     </div>
@@ -524,8 +539,21 @@ function Step3({
 
     return (
         <div>
-            <DarkInput icon={User} label="Nome completo" placeholder="Ex: Lucas Villela" value={state.name} onChange={(e: any) => onChange('name', e.target.value)} />
-            <DarkInput icon={Phone} label="WhatsApp" placeholder="(21) 90000-0000" type="tel" value={state.phone} onChange={(e: any) => onChange('phone', formatPhone(e.target.value))} />
+            <DarkInput
+                icon={User}
+                label="Nome completo"
+                placeholder="Ex: Lucas Villela"
+                value={state.name}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => onChange('name', event.target.value)}
+            />
+            <DarkInput
+                icon={Phone}
+                label="WhatsApp"
+                placeholder="(21) 90000-0000"
+                type="tel"
+                value={state.phone}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => onChange('phone', formatPhone(event.target.value))}
+            />
 
             {checkingWeeklyReservation && (
                 <button

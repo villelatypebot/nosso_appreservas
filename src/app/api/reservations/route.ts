@@ -210,6 +210,7 @@ export async function GET(request: Request) {
     const unitId = searchParams.get('unitId')
     const date = searchParams.get('date')
     const status = searchParams.get('status')
+    const search = searchParams.get('search')?.trim()
     const page = Number(searchParams.get('page') || '1')
     const pageSize = 20
 
@@ -230,6 +231,25 @@ export async function GET(request: Request) {
     if (unitId) query = query.eq('unit_id', unitId)
     if (date) query = query.eq('reservation_date', date)
     if (status) query = query.eq('status', status)
+    if (search) {
+        const likeSearch = `%${search}%`
+        const { data: matchingCustomers, error: customerSearchError } = await supabase
+            .from('customers')
+            .select('id')
+            .or(`name.ilike.${likeSearch},phone.ilike.${likeSearch}`)
+
+        if (customerSearchError) {
+            console.error('Customer search error:', customerSearchError)
+        }
+
+        const customerIds = (matchingCustomers || []).map(customer => customer.id)
+
+        if (customerIds.length > 0) {
+            query = query.or(`confirmation_code.ilike.${likeSearch},customer_id.in.(${customerIds.join(',')})`)
+        } else {
+            query = query.ilike('confirmation_code', likeSearch)
+        }
+    }
 
     const { data, error, count } = await query
 

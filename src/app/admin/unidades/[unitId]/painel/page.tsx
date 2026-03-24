@@ -24,7 +24,7 @@ type Tab = "reservas" | "disponibilidade";
 export default function PainelPage() {
   const params = useParams();
   const unitId = params.unitId as string;
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const [tab, setTab] = useState<Tab>("reservas");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -44,10 +44,16 @@ export default function PainelPage() {
       .order("reservation_time");
     setReservations((data || []) as ReservationWithDetails[]);
     setLoading(false);
-  }, [unitId, date]);
+  }, [supabase, unitId, date]);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [load]);
 
   // Realtime subscription
@@ -62,13 +68,15 @@ export default function PainelPage() {
           table: "reservations",
           filter: `unit_id=eq.${unitId}`,
         },
-        () => load(),
+        () => {
+          void load();
+        },
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [unitId, load]);
+  }, [supabase, unitId, load]);
 
   const updateStatus = async (id: string, status: ReservationStatus) => {
     setActionLoading(id);

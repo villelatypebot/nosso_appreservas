@@ -23,7 +23,7 @@ function WebhookStatusDot({ status }: { status: number | null }) {
 export default function WebhooksPage() {
     const params = useParams()
     const unitId = params.unitId as string
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
 
     const [webhooks, setWebhooks] = useState<Webhook[]>([])
     const [logs, setLogs] = useState<(WebhookLog & { webhooks?: { name: string } })[]>([])
@@ -43,14 +43,25 @@ export default function WebhooksPage() {
         setLoading(true)
         const [whRes, logRes] = await Promise.all([
             supabase.from('webhooks').select('*').eq('unit_id', unitId).order('created_at', { ascending: false }),
-            supabase.from('webhook_logs').select('*, webhooks(name)').order('triggered_at', { ascending: false }).limit(20),
+            supabase
+                .from('webhook_logs')
+                .select('*, webhooks!inner(name, unit_id)')
+                .eq('webhooks.unit_id', unitId)
+                .order('triggered_at', { ascending: false })
+                .limit(20),
         ])
         setWebhooks(whRes.data || [])
         setLogs(logRes.data as (WebhookLog & { webhooks?: { name: string } })[] || [])
         setLoading(false)
-    }, [unitId])
+    }, [supabase, unitId])
 
-    useEffect(() => { load() }, [load])
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            void load()
+        }, 0)
+
+        return () => window.clearTimeout(timer)
+    }, [load])
 
     const toggleEvent = (ev: string) => {
         setForm(f => ({

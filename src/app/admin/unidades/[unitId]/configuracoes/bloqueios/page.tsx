@@ -19,7 +19,7 @@ interface DateBlock {
 export default function BloqueiosPage() {
     const params = useParams()
     const unitId = params.unitId as string
-    const supabase = createClient()
+    const [supabase] = useState(() => createClient())
 
     const [blocks, setBlocks] = useState<DateBlock[]>([])
     const [loading, setLoading] = useState(true)
@@ -43,9 +43,15 @@ export default function BloqueiosPage() {
             .order('block_date', { ascending: true })
         setBlocks(data || [])
         setLoading(false)
-    }, [unitId])
+    }, [supabase, unitId])
 
-    useEffect(() => { load() }, [load])
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            void load()
+        }, 0)
+
+        return () => window.clearTimeout(timer)
+    }, [load])
 
     const handleCreate = async () => {
         if (!form.block_date) return

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
         },
     })
 
-    let headers: Record<string, string> = {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'X-FullHouse-Event': 'webhook.test',
         'User-Agent': 'FullHouse-Webhooks/1.0',
