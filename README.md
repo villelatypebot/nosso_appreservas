@@ -35,7 +35,8 @@ Sistema de reservas whitelabel em `Next.js + Supabase`, pronto para ser instalad
 8. Conclua o setup inicial da marca e do primeiro estabelecimento.
 
 Guia completo: [docs/INSTALACAO.md](/Users/lucasvillela/Desktop/FULL%20CRM/AGENDAMENTOS/fullhouse-reservas/docs/INSTALACAO.md)  
-Lista completa de recursos: [docs/RECURSOS.md](/Users/lucasvillela/Desktop/FULL%20CRM/AGENDAMENTOS/fullhouse-reservas/docs/RECURSOS.md)
+Lista completa de recursos: [docs/RECURSOS.md](/Users/lucasvillela/Desktop/FULL%20CRM/AGENDAMENTOS/fullhouse-reservas/docs/RECURSOS.md)  
+Documento comercial para apresentar aos clientes: [docs/APRESENTACAO_CLIENTES.md](/Users/lucasvillela/Desktop/FULL%20CRM/AGENDAMENTOS/fullhouse-reservas/docs/APRESENTACAO_CLIENTES.md)
 
 ## Scripts úteis
 
