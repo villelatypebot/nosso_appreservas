@@ -1,6 +1,4 @@
-// Full House — Push Notification Service Worker
-
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
     self.skipWaiting()
 })
 
@@ -15,24 +13,24 @@ self.addEventListener('push', (event) => {
     try {
         data = event.data.json()
     } catch {
-        data = { title: 'Full House', body: event.data.text() }
+        data = { title: 'Notificação', body: event.data.text() }
     }
 
     const options = {
         body: data.body || '',
-        icon: '/fullhouse-logo.jpg',
-        badge: '/fullhouse-logo.jpg',
+        icon: '/icon',
+        badge: '/icon',
         vibrate: [100, 50, 100],
         data: {
             url: data.url || '/admin/dashboard',
         },
         actions: data.actions || [],
-        tag: data.tag || 'fullhouse-notification',
+        tag: data.tag || 'reservation-notification',
         renotify: true,
     }
 
     event.waitUntil(
-        self.registration.showNotification(data.title || 'Full House Reservas', options)
+        self.registration.showNotification(data.title || 'Sistema de Reservas', options)
     )
 })
 

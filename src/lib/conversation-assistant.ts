@@ -6,6 +6,7 @@ import {
     lookupAvailability,
     type ResolvedConversationUnit,
 } from './availability-check'
+import { stripBrandPrefix } from './brand'
 
 export type ConversationMessageRole = 'customer' | 'assistant'
 
@@ -114,7 +115,7 @@ function formatDateLabel(date: string | null) {
 
 function formatUnitShortName(name?: string | null) {
     if (!name) return null
-    return name.replace(/^full\s*house\s+/i, '').trim() || name.trim()
+    return stripBrandPrefix(name) || name.trim()
 }
 
 function parseDateFromText(text: string, referenceDate = new Date()) {
@@ -185,21 +186,26 @@ function parsePaxFromText(text: string) {
     return null
 }
 
-function inferUnitNameFromMessages(messages: ConversationMessage[]) {
+async function inferUnitNameFromMessages(
+    supabase: SupabaseClient<Database>,
+    messages: ConversationMessage[]
+) {
     const combinedText = messages.map(message => message.text).join(' ')
-    const unitMatches = [
-        'boa vista',
-        'colubande',
-        'colubandê',
-        'araruama',
-        'niteroi',
-        'niterói',
-    ]
+    if (!combinedText.trim()) return null
 
-    const match = unitMatches.find(unit => normalizeText(combinedText).includes(normalizeText(unit)))
-    if (!match) return null
+    const { data: units } = await supabase
+        .from('units')
+        .select('name, slug')
+        .eq('is_active', true)
 
-    return match
+    const normalizedConversation = normalizeText(combinedText)
+    const match = (units || []).find((unit) => (
+        normalizedConversation.includes(normalizeText(unit.name))
+        || normalizedConversation.includes(normalizeText(unit.slug))
+        || normalizedConversation.includes(normalizeText(stripBrandPrefix(unit.name) || unit.name))
+    ))
+
+    return match?.name || null
 }
 
 function inferLatestValue<T>(
@@ -359,7 +365,7 @@ export async function assistConversation(
     const inferredDate = inferLatestValue(input.reservationDate?.trim() || null, messages, (text) => parseDateFromText(text))
     const inferredTime = inferLatestValue(input.reservationTime?.trim() || null, messages, (text) => parseTimeFromText(text))
     const inferredPax = inferLatestValue(input.pax ?? null, messages, (text) => parsePaxFromText(text))
-    const inferredUnitName = input.unitName?.trim() || inferUnitNameFromMessages(messages)
+    const inferredUnitName = input.unitName?.trim() || await inferUnitNameFromMessages(supabase, messages)
 
     const availability = await lookupAvailability(supabase, {
         unitId: input.unitId,

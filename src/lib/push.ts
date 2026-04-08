@@ -1,5 +1,6 @@
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
+import { stripBrandPrefix } from './brand'
 
 let vapidConfigured = false
 
@@ -8,7 +9,7 @@ function ensureVapidConfigured() {
 
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     const privateKey = process.env.VAPID_PRIVATE_KEY
-    const subject = process.env.VAPID_SUBJECT || 'mailto:fullhouse@rocketmediabrasil.com'
+    const subject = process.env.VAPID_SUBJECT || 'mailto:no-reply@example.com'
 
     if (!publicKey || !privateKey) {
         console.warn('[Push] VAPID keys are missing. Push notifications are disabled.')
@@ -38,7 +39,7 @@ interface NotificationPayload {
 function formatPushUnitName(unitName?: string | null) {
     if (!unitName) return null
 
-    const normalized = unitName.replace(/^full\s*house\s+/i, '').trim()
+    const normalized = stripBrandPrefix(unitName) || unitName.trim()
     return normalized || unitName.trim()
 }
 

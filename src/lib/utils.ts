@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { format, addDays, isBefore, startOfDay } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { ReservationStatus } from './supabase/types'
 
@@ -24,7 +24,8 @@ export function formatTime(time: string) {
 
 export function generateConfirmationCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    let code = 'FH-'
+    const prefix = (process.env.NEXT_PUBLIC_RESERVATION_CODE_PREFIX || 'RS').toUpperCase()
+    let code = `${prefix}-`
     for (let i = 0; i < 6; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length))
     }

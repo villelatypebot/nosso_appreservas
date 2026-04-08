@@ -39,14 +39,15 @@ export interface AvailabilityLookupResult {
     reason: string | null
 }
 
-const DEFAULT_APP_URL = 'https://fullhouseagendamento.vercel.app'
+const DEFAULT_APP_URL = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000'
 
 function normalizeText(text: string) {
     return text
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
-        .replace(/^full\s*house\s+/i, '')
         .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
         .replace(/\s+/g, ' ')
         .trim()

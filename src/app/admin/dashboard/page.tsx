@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Building2, TrendingUp, Calendar, Users, AlertTriangle, ArrowRight, CheckCircle } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { getBrandSettings, stripBrandPrefix } from '@/lib/brand'
+import BrandMark from '@/components/branding/BrandMark'
 
 async function getMetrics(supabase: Awaited<ReturnType<typeof createClient>>) {
     const today = new Date().toISOString().split('T')[0]
@@ -37,7 +38,8 @@ async function getRecentReservations(supabase: Awaited<ReturnType<typeof createC
 
 export default async function AdminDashboard() {
     const supabase = await createClient()
-    const [metrics, recent] = await Promise.all([
+    const [brand, metrics, recent] = await Promise.all([
+        getBrandSettings(supabase),
         getMetrics(supabase),
         getRecentReservations(supabase),
     ])
@@ -209,7 +211,7 @@ export default async function AdminDashboard() {
                 <div className="fh-card">
                     <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px' }}>
                         <Building2 size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
-                        Unidades
+                        Estabelecimentos
                     </h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {metrics.units.map((unit: { id: string; name: string; slug: string }) => (
@@ -237,13 +239,21 @@ export default async function AdminDashboard() {
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         overflow: 'hidden'
                                     }}>
-                                        <Image src="/fullhouse-logo.jpg" alt={unit.name} width={40} height={40} style={{ objectFit: 'cover' }} />
+                                        <BrandMark
+                                            size={40}
+                                            brandName={brand.brandName}
+                                            shortName={brand.shortName}
+                                            logoUrl={brand.logoUrl}
+                                            primaryColor={brand.primaryColor}
+                                            secondaryColor={brand.secondaryColor}
+                                            rounded={12}
+                                        />
                                     </div>
                                     <div>
                                         <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
-                                            {unit.name.replace('Full House ', '')}
+                                            {stripBrandPrefix(unit.name, brand.brandName) || unit.name}
                                         </p>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>Full House</p>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>{brand.shortName}</p>
                                     </div>
                                 </div>
                                 <ArrowRight size={14} color="var(--text-muted)" />
@@ -253,8 +263,11 @@ export default async function AdminDashboard() {
                     <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--brand-border)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-success)' }}>
                             <CheckCircle size={12} />
-                            <span>{metrics.units.length} unidades ativas</span>
+                            <span>{metrics.units.length} estabelecimentos ativos</span>
                         </div>
+                        <Link href="/admin/dashboard/estabelecimentos" className="fh-btn fh-btn-outline fh-btn-sm" style={{ marginTop: '12px', display: 'inline-flex' }}>
+                            Gerenciar estabelecimentos
+                        </Link>
                     </div>
                 </div>
             </div>

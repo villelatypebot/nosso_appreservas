@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import type { Metadata } from 'next'
+import { getBrandSettings } from '@/lib/brand'
 
 interface Props {
     children: React.ReactNode
@@ -12,14 +13,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { unitId } = await params
     const supabase = await createClient()
     const { data: unit } = await supabase.from('units').select('name').eq('id', unitId).single()
-    return { title: `${unit?.name || 'Unidade'} — Admin Full House` }
+    const brand = await getBrandSettings(supabase)
+    return { title: `${unit?.name || 'Unidade'} — Admin ${brand.shortName}` }
 }
 
 export default async function UnitAdminLayout({ children, params }: Props) {
     const { unitId } = await params
     const supabase = await createClient()
-    // const { data: { user } } = await supabase.auth.getUser()
-    // if (!user) return null
+    const brand = await getBrandSettings(supabase)
 
     const { data: unit } = await supabase.from('units').select('id, name').eq('id', unitId).single()
     if (!unit) notFound()
@@ -35,7 +36,15 @@ export default async function UnitAdminLayout({ children, params }: Props) {
             }} />
 
             {/* Override the outer sidebar with unit-aware sidebar */}
-            <AdminSidebar unitId={unit.id} unitName={unit.name} />
+            <AdminSidebar
+                unitId={unit.id}
+                unitName={unit.name}
+                brandName={brand.brandName}
+                shortName={brand.shortName}
+                logoUrl={brand.logoUrl}
+                primaryColor={brand.primaryColor}
+                secondaryColor={brand.secondaryColor}
+            />
             <main className="admin-content" style={{ flex: 1, minHeight: '100vh', position: 'relative', zIndex: 1 }}>
                 {children}
             </main>

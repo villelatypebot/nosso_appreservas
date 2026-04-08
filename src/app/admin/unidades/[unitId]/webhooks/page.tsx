@@ -161,7 +161,7 @@ export default function WebhooksPage() {
                             </button>
                         </div>
                         <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            Será enviado no header <code style={{ background: 'var(--brand-surface-3)', padding: '1px 5px', borderRadius: '3px' }}>X-FullHouse-Signature</code> como HMAC-SHA256
+                            Será enviado no header <code style={{ background: 'var(--brand-surface-3)', padding: '1px 5px', borderRadius: '3px' }}>X-Reservation-Signature</code> como HMAC-SHA256
                         </p>
                     </div>
                     <div style={{ marginBottom: '20px' }}>

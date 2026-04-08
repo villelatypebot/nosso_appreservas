@@ -1,11 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import AdminSidebar from '@/components/admin/AdminSidebar'
+import { getBrandSettings } from '@/lib/brand'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-    // const supabase = await createClient()
-    // const { data: { user } } = await supabase.auth.getUser()
-    // if (!user) redirect('/admin/login')
+    const supabase = await createClient()
+    const brand = await getBrandSettings(supabase)
 
     return (
         <div style={{ display: 'flex', background: '#040201', minHeight: '100vh', position: 'relative' }}>
@@ -17,7 +16,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 pointerEvents: 'none', zIndex: 0
             }} />
 
-            <AdminSidebar />
+            <AdminSidebar
+                brandName={brand.brandName}
+                shortName={brand.shortName}
+                logoUrl={brand.logoUrl}
+                primaryColor={brand.primaryColor}
+                secondaryColor={brand.secondaryColor}
+            />
             <main className="admin-content" style={{ flex: 1, minHeight: '100vh', position: 'relative', zIndex: 1 }}>
                 {children}
             </main>

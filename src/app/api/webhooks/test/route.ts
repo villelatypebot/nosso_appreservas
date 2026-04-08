@@ -1,23 +1,25 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { requireAdminAccess } from '@/lib/admin-auth'
+import type { Webhook } from '@/lib/supabase/types'
 
 export async function POST(request: Request) {
+    const auth = await requireAdminAccess({ minRole: 'operator' })
+    if ('response' in auth) return auth.response
+
     const { webhookId } = await request.json()
     if (!webhookId) return NextResponse.json({ error: 'webhookId obrigatório' }, { status: 400 })
 
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = auth.adminClient
 
-    const { data: webhook } = await supabase.from('webhooks').select('*').eq('id', webhookId).single()
+    const { data } = await supabase.from('webhooks').select('*').eq('id', webhookId).single()
+    const webhook = data as Webhook | null
     if (!webhook) return NextResponse.json({ error: 'Webhook não encontrado' }, { status: 404 })
 
     const payload = JSON.stringify({
         event: 'webhook.test',
         timestamp: new Date().toISOString(),
         data: {
-            message: 'Este é um disparo de teste do Full House Reservas.',
+            message: 'Este é um disparo de teste do sistema de reservas.',
             webhook_name: webhook.name,
             unit_id: webhook.unit_id,
         },
@@ -25,8 +27,8 @@ export async function POST(request: Request) {
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'X-FullHouse-Event': 'webhook.test',
-        'User-Agent': 'FullHouse-Webhooks/1.0',
+        'X-Reservation-Event': 'webhook.test',
+        'User-Agent': 'Reservations-Whitelabel/1.0',
     }
 
     if (webhook.secret) {
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
         )
         const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload))
         const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
-        headers['X-FullHouse-Signature'] = `sha256=${sigHex}`
+        headers['X-Reservation-Signature'] = `sha256=${sigHex}`
     }
 
     let responseStatus: number = 0
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
     await Promise.all([
         supabase.from('webhook_logs').insert({
             webhook_id: webhook.id,
+            reservation_id: null,
             event: 'webhook.test',
             payload: JSON.parse(payload),
             response_status: responseStatus,

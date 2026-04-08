@@ -1,7 +1,6 @@
 -- ================================================================
--- Full House Reservas — Migration Completa
+-- Whitelabel Reservas — Schema base
 -- Cole este SQL no SQL Editor do Supabase e clique em "Run"
--- URL: https://supabase.com/dashboard/project/bqroijjherbnhsdsnaor/sql/new
 -- ================================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -88,7 +87,7 @@ CREATE OR REPLACE FUNCTION generate_confirmation_code()
 RETURNS TEXT AS $$
 DECLARE
   chars TEXT := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  code TEXT := 'FH-';
+  code TEXT := 'RS-';
   i INT;
 BEGIN
   FOR i IN 1..6 LOOP
@@ -183,32 +182,9 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- SEED
-INSERT INTO units (name, slug, address, phone) VALUES
-  ('Full House Boa Vista', 'boa-vista', 'Rua da Boa Vista, 123 - Niterói, RJ', '(21) 99000-0001'),
-  ('Full House Colubandê', 'colubande', 'Av. Colubandê, 456 - São Gonçalo, RJ', '(21) 99000-0002'),
-  ('Full House Araruama', 'araruama', 'Rua Principal, 789 - Araruama, RJ', '(22) 99000-0003'),
-  ('Full House Niterói', 'niteroi', 'Rua Icaraí, 321 - Niterói, RJ', '(21) 99000-0004')
-ON CONFLICT (slug) DO NOTHING;
-
-INSERT INTO environments (unit_id, name, capacity)
-SELECT id, 'Salão Principal', 80 FROM units
-ON CONFLICT DO NOTHING;
-
-INSERT INTO environments (unit_id, name, capacity)
-SELECT id, 'Espaço Família', 40 FROM units
-ON CONFLICT DO NOTHING;
-
-INSERT INTO time_slots (unit_id, day_of_week, open_time, close_time, slot_interval_minutes, max_pax_per_slot)
-SELECT u.id, d.day, '18:00'::time, '22:00'::time, 30, 60
-FROM units u
-CROSS JOIN (VALUES (5), (6), (0)) AS d(day)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO reservation_rules (unit_id, min_advance_hours, max_advance_days, tolerance_minutes, min_pax, max_pax, cancellation_policy)
-SELECT id, 2, 60, 30, 1, 20, 'A reserva pode ser cancelada com até 4 horas de antecedência.'
-FROM units
-ON CONFLICT (unit_id) DO NOTHING;
+-- O projeto nasce sem unidades para permitir uma instalação whitelabel.
+-- Depois do deploy, crie o primeiro estabelecimento pela tela /setup
+-- ou pelo admin em /admin/dashboard/estabelecimentos.
 
 -- RLS
 ALTER TABLE units ENABLE ROW LEVEL SECURITY;

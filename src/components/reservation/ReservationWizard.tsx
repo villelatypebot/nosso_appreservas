@@ -41,6 +41,7 @@ interface Props {
     environments: Environment[]
     reservationRules?: ReservationRules
     availableSlots: Record<string, { available: boolean; count: number }>
+    reservationCodePrefix?: string
 }
 
 const OCCASIONS = [
@@ -665,7 +666,7 @@ function Step4({ code, phone }: { code: string, phone: string }) {
 }
 
 // ─── Main Component ───────────────────────────────────
-export default function ReservationWizard({ unit, environments, reservationRules }: Props) {
+export default function ReservationWizard({ unit, environments, reservationRules, reservationCodePrefix = 'RS' }: Props) {
     const [[step, direction], setPage] = useState([1, 0])
     const [loading, setLoading] = useState(false)
     const [confirmCode, setConfirmCode] = useState('')
@@ -751,7 +752,7 @@ export default function ReservationWizard({ unit, environments, reservationRules
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data.error)
-            setConfirmCode(data.confirmation_code || 'FH-' + Math.floor(Math.random() * 9000 + 1000))
+            setConfirmCode(data.confirmation_code || `${reservationCodePrefix}-${Math.floor(Math.random() * 9000 + 1000)}`)
             paginate(1)
         } catch (err: unknown) {
             alert('Não foi possível finalizar a reserva. ' + (err as Error).message)

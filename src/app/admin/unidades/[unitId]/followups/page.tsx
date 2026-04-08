@@ -376,7 +376,7 @@ export default function FollowUpsPage() {
                             className="fh-input"
                             value={generatorForm.unitName}
                             onChange={event => setGeneratorForm(current => ({ ...current, unitName: event.target.value }))}
-                            placeholder="Ex: Full House Boa Vista"
+                            placeholder="Ex: Unidade Centro"
                         />
                     </div>
                     <div>

@@ -355,8 +355,8 @@ async function triggerWebhooks(
 
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
-                'X-FullHouse-Event': event,
-                'User-Agent': 'FullHouse-Webhooks/1.0',
+                'X-Reservation-Event': event,
+                'User-Agent': 'Reservations-Whitelabel/1.0',
             }
 
             // HMAC signature
@@ -367,7 +367,7 @@ async function triggerWebhooks(
                 )
                 const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(body))
                 const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
-                headers['X-FullHouse-Signature'] = `sha256=${sigHex}`
+                headers['X-Reservation-Signature'] = `sha256=${sigHex}`
             }
 
             let responseStatus: number | null = null

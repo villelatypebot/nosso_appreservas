@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { requireAdminAccess } from '@/lib/admin-auth'
 
-function getAdminClient() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return createClient<any>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-}
+const ADMIN_ROLES = ['admin', 'manager', 'operator'] as const
 
 // GET: List all admin users
 export async function GET() {
-    const supabase = getAdminClient()
+    const auth = await requireAdminAccess({ minRole: 'manager' })
+    if ('response' in auth) return auth.response
+
+    const supabase = auth.adminClient
 
     const { data, error } = await supabase
         .from('admin_users')
@@ -28,6 +25,9 @@ export async function GET() {
 // POST: Create a new admin user (creates auth user + admin_users record)
 export async function POST(request: Request) {
     try {
+        const auth = await requireAdminAccess({ minRole: 'admin' })
+        if ('response' in auth) return auth.response
+
         const body = await request.json()
         const { name, email, password, role } = body
 
@@ -35,11 +35,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Todos os campos são obrigatórios.' }, { status: 400 })
         }
 
-        if (!['admin', 'viewer'].includes(role)) {
-            return NextResponse.json({ error: 'Role inválida. Use: admin ou viewer.' }, { status: 400 })
+        if (!ADMIN_ROLES.includes(role)) {
+            return NextResponse.json({ error: 'Role inválida. Use: admin, manager ou operator.' }, { status: 400 })
         }
 
-        const supabase = getAdminClient()
+        const supabase = auth.adminClient
 
         // 1. Create auth user in Supabase
         const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
@@ -85,6 +85,9 @@ export async function POST(request: Request) {
 // PATCH: Update admin user (name, role)
 export async function PATCH(request: Request) {
     try {
+        const auth = await requireAdminAccess({ minRole: 'admin' })
+        if ('response' in auth) return auth.response
+
         const body = await request.json()
         const { id, name, role } = body
 
@@ -92,11 +95,11 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'ID obrigatório.' }, { status: 400 })
         }
 
-        if (role && !['admin', 'viewer'].includes(role)) {
-            return NextResponse.json({ error: 'Role inválida. Use: admin ou viewer.' }, { status: 400 })
+        if (role && !ADMIN_ROLES.includes(role)) {
+            return NextResponse.json({ error: 'Role inválida. Use: admin, manager ou operator.' }, { status: 400 })
         }
 
-        const supabase = getAdminClient()
+        const supabase = auth.adminClient
 
         const updateData: Record<string, unknown> = {}
         if (name) updateData.name = name
@@ -123,6 +126,9 @@ export async function PATCH(request: Request) {
 // DELETE: Remove admin user (deletes both admin_users record and auth user)
 export async function DELETE(request: Request) {
     try {
+        const auth = await requireAdminAccess({ minRole: 'admin' })
+        if ('response' in auth) return auth.response
+
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')
 
@@ -130,7 +136,7 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'ID obrigatório.' }, { status: 400 })
         }
 
-        const supabase = getAdminClient()
+        const supabase = auth.adminClient
 
         // Delete admin_users record first (CASCADE will handle push_subscriptions)
         const { error: dbError } = await supabase

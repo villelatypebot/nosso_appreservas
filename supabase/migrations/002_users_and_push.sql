@@ -2,10 +2,10 @@
 -- Migration 002: User role update + Push Subscriptions
 -- ================================================================
 
--- 1. Update admin_users role constraint to include 'viewer'
+-- 1. Update admin_users role constraint
 ALTER TABLE admin_users DROP CONSTRAINT IF EXISTS admin_users_role_check;
 ALTER TABLE admin_users ADD CONSTRAINT admin_users_role_check 
-  CHECK (role IN ('admin','manager','operator','viewer'));
+  CHECK (role IN ('admin','manager','operator'));
 
 -- 2. Push subscriptions table for PWA notifications
 CREATE TABLE IF NOT EXISTS push_subscriptions (

@@ -1,13 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { runtimeFlags } from '@/lib/brand'
 
 export async function middleware(request: NextRequest) {
+    const pathname = request.nextUrl.pathname
     const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
+    const isAdminLoginRoute = pathname === '/admin/login'
+    const isSetupRoute = pathname.startsWith('/setup')
 
-    // Temporary bypass while the admin area is in testing.
-    if (isAdminRoute) {
+    if (runtimeFlags.adminFreeAccess && isAdminRoute) {
         return NextResponse.next({ request })
     }
+
+    if (!isAdminRoute || isSetupRoute) {
+        return NextResponse.next({ request })
+    }
+
     let supabaseResponse = NextResponse.next({ request })
 
     const supabase = createServerClient(
@@ -31,13 +39,27 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user && !isAdminLoginRoute) {
+        const loginUrl = request.nextUrl.clone()
+        loginUrl.pathname = '/admin/login'
+        loginUrl.searchParams.set('next', pathname)
+        return NextResponse.redirect(loginUrl)
+    }
+
+    if (user && isAdminLoginRoute) {
+        const dashboardUrl = request.nextUrl.clone()
+        dashboardUrl.pathname = '/admin/dashboard'
+        dashboardUrl.search = ''
+        return NextResponse.redirect(dashboardUrl)
+    }
 
     return supabaseResponse
 }
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|icon|apple-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }

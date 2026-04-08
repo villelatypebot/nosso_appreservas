@@ -1,13 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Search, MapPin, Calendar, Clock, Users, ArrowRight, Loader2, Edit3, X, Check, Eye } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Search, MapPin, Calendar, Clock, Users, ArrowRight, Loader2, Edit3, X, Check } from 'lucide-react'
 
 // Opcional: Reutilizar lógica de horários do sistema (aqui em hardcode por agilidade)
 const TIME_SLOTS = ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30']
 
-export default function ClientReservationManager() {
+interface ClientReservationManagerProps {
+    reservationCodePrefix?: string
+}
+
+export default function ClientReservationManager({ reservationCodePrefix = 'RS' }: ClientReservationManagerProps) {
     const [code, setCode] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -82,7 +86,7 @@ export default function ClientReservationManager() {
                     </div>
                     <input
                         type="text"
-                        placeholder="FH-XXXX"
+                        placeholder={`${reservationCodePrefix}-XXXX`}
                         value={code}
                         onChange={e => setCode(e.target.value.toUpperCase())}
                         style={{

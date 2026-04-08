@@ -1,19 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function getAdminClient() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return createClient<any>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-}
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { requireAdminAccess } from '@/lib/admin-auth'
+import type { Database } from '@/lib/supabase/types'
 
 /**
  * Ensures the push_subscriptions table exists.
  * Called lazily on first subscribe attempt.
  */
-async function ensureTable(supabase: ReturnType<typeof getAdminClient>) {
+async function ensureTable(supabase: SupabaseClient<Database>) {
     // Quick check — try selecting
     const { error } = await supabase
         .from('push_subscriptions')
@@ -32,14 +26,17 @@ async function ensureTable(supabase: ReturnType<typeof getAdminClient>) {
 // POST: Subscribe to push notifications
 export async function POST(request: Request) {
     try {
+        const auth = await requireAdminAccess({ minRole: 'operator' })
+        if ('response' in auth) return auth.response
+
         const body = await request.json()
-        const { subscription, adminUserId } = body
+        const { subscription } = body
 
         if (!subscription || !subscription.endpoint || !subscription.keys) {
             return NextResponse.json({ error: 'Subscription data inválida.' }, { status: 400 })
         }
 
-        const supabase = getAdminClient()
+        const supabase = auth.adminClient
 
         const tableExists = await ensureTable(supabase)
         if (!tableExists) {
@@ -53,7 +50,7 @@ export async function POST(request: Request) {
             .from('push_subscriptions')
             .upsert(
                 {
-                    admin_user_id: adminUserId || null,
+                    admin_user_id: auth.authUser.id,
                     endpoint: subscription.endpoint,
                     p256dh: subscription.keys.p256dh,
                     auth: subscription.keys.auth,
@@ -76,6 +73,9 @@ export async function POST(request: Request) {
 // DELETE: Unsubscribe from push notifications
 export async function DELETE(request: Request) {
     try {
+        const auth = await requireAdminAccess({ minRole: 'operator' })
+        if ('response' in auth) return auth.response
+
         const body = await request.json()
         const { endpoint } = body
 
@@ -83,12 +83,13 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Endpoint obrigatório.' }, { status: 400 })
         }
 
-        const supabase = getAdminClient()
+        const supabase = auth.adminClient
 
         const { error } = await supabase
             .from('push_subscriptions')
             .delete()
             .eq('endpoint', endpoint)
+            .eq('admin_user_id', auth.authUser.id)
 
         if (error) {
             console.error('Push unsubscribe error:', error)

@@ -2,13 +2,22 @@ import { Suspense } from 'react'
 import ClientReservationManager from '@/components/reservation/ClientReservationManager'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { getBrandSettings } from '@/lib/brand'
+import { createClient } from '@/lib/supabase/server'
 
-export const metadata = {
-    title: 'Gerenciar Reserva - FullHouse',
-    description: 'Gerencie sua reserva usando seu código exclusivo.',
+export async function generateMetadata() {
+    const supabase = await createClient()
+    const brand = await getBrandSettings(supabase)
+    return {
+        title: `Gerenciar reserva - ${brand.shortName}`,
+        description: 'Gerencie sua reserva usando seu código exclusivo.',
+    }
 }
 
-export default function MyReservationPage() {
+export default async function MyReservationPage() {
+    const supabase = await createClient()
+    const brand = await getBrandSettings(supabase)
+
     return (
         <main style={{ background: '#040201', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
 
@@ -43,15 +52,15 @@ export default function MyReservationPage() {
                 }}>
                     <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                         <h1 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', marginBottom: '12px' }}>
-                            Sua Mágica
+                            Minha Reserva
                         </h1>
                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '16px' }}>
-                            Acesse e edite sua reserva com seu código exclusivo.
+                            Acesse e edite sua reserva em {brand.shortName} com seu código exclusivo.
                         </p>
                     </div>
 
                     <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.5)' }}>Carregando magia...</div>}>
-                        <ClientReservationManager />
+                        <ClientReservationManager reservationCodePrefix={brand.reservationCodePrefix} />
                     </Suspense>
                 </div>
 

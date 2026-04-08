@@ -24,6 +24,28 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['units']['Row'], 'id' | 'created_at'>
                 Update: Partial<Database['public']['Tables']['units']['Insert']>
+                Relationships: []
+            }
+            business_settings: {
+                Row: {
+                    id: string
+                    brand_name: string
+                    short_name: string
+                    tagline: string | null
+                    description: string | null
+                    support_phone: string | null
+                    support_email: string | null
+                    whatsapp_phone: string | null
+                    logo_url: string | null
+                    primary_color: string
+                    secondary_color: string
+                    reservation_code_prefix: string
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: Omit<Database['public']['Tables']['business_settings']['Row'], 'id' | 'created_at' | 'updated_at'>
+                Update: Partial<Database['public']['Tables']['business_settings']['Insert']>
+                Relationships: []
             }
             environments: {
                 Row: {
@@ -36,6 +58,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['environments']['Row'], 'id'>
                 Update: Partial<Database['public']['Tables']['environments']['Insert']>
+                Relationships: []
             }
             time_slots: {
                 Row: {
@@ -50,6 +73,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['time_slots']['Row'], 'id'>
                 Update: Partial<Database['public']['Tables']['time_slots']['Insert']>
+                Relationships: []
             }
             reservation_rules: {
                 Row: {
@@ -66,6 +90,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['reservation_rules']['Row'], 'id' | 'updated_at'>
                 Update: Partial<Database['public']['Tables']['reservation_rules']['Insert']>
+                Relationships: []
             }
             date_blocks: {
                 Row: {
@@ -79,6 +104,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['date_blocks']['Row'], 'id' | 'created_at'>
                 Update: Partial<Database['public']['Tables']['date_blocks']['Insert']>
+                Relationships: []
             }
             customers: {
                 Row: {
@@ -90,6 +116,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['customers']['Row'], 'id' | 'created_at'>
                 Update: Partial<Database['public']['Tables']['customers']['Insert']>
+                Relationships: []
             }
             reservations: {
                 Row: {
@@ -110,6 +137,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['reservations']['Row'], 'id' | 'created_at' | 'updated_at' | 'confirmation_code'>
                 Update: Partial<Database['public']['Tables']['reservations']['Insert']>
+                Relationships: []
             }
             webhooks: {
                 Row: {
@@ -126,6 +154,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['webhooks']['Row'], 'id' | 'created_at'>
                 Update: Partial<Database['public']['Tables']['webhooks']['Insert']>
+                Relationships: []
             }
             webhook_logs: {
                 Row: {
@@ -140,6 +169,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['webhook_logs']['Row'], 'id' | 'triggered_at'>
                 Update: never
+                Relationships: []
             }
             follow_up_rules: {
                 Row: {
@@ -154,6 +184,7 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['follow_up_rules']['Row'], 'id'>
                 Update: Partial<Database['public']['Tables']['follow_up_rules']['Insert']>
+                Relationships: []
             }
             reminder_logs: {
                 Row: {
@@ -166,6 +197,20 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['reminder_logs']['Row'], 'id' | 'sent_at'>
                 Update: never
+                Relationships: []
+            }
+            push_subscriptions: {
+                Row: {
+                    id: string
+                    admin_user_id: string | null
+                    endpoint: string
+                    p256dh: string
+                    auth: string
+                    created_at: string
+                }
+                Insert: Omit<Database['public']['Tables']['push_subscriptions']['Row'], 'id' | 'created_at'>
+                Update: Partial<Database['public']['Tables']['push_subscriptions']['Insert']>
+                Relationships: []
             }
             admin_users: {
                 Row: {
@@ -177,16 +222,19 @@ export interface Database {
                 }
                 Insert: Omit<Database['public']['Tables']['admin_users']['Row'], 'created_at'>
                 Update: Partial<Database['public']['Tables']['admin_users']['Insert']>
+                Relationships: []
             }
         }
         Views: Record<string, never>
         Functions: Record<string, never>
         Enums: Record<string, never>
+        CompositeTypes: Record<string, never>
     }
 }
 
 // Derived convenient types
 export type Unit = Database['public']['Tables']['units']['Row']
+export type BusinessSettings = Database['public']['Tables']['business_settings']['Row']
 export type Environment = Database['public']['Tables']['environments']['Row']
 export type TimeSlot = Database['public']['Tables']['time_slots']['Row']
 export type ReservationRule = Database['public']['Tables']['reservation_rules']['Row']
@@ -196,6 +244,7 @@ export type Reservation = Database['public']['Tables']['reservations']['Row']
 export type Webhook = Database['public']['Tables']['webhooks']['Row']
 export type WebhookLog = Database['public']['Tables']['webhook_logs']['Row']
 export type FollowUpRule = Database['public']['Tables']['follow_up_rules']['Row']
+export type PushSubscription = Database['public']['Tables']['push_subscriptions']['Row']
 export type AdminUser = Database['public']['Tables']['admin_users']['Row']
 
 export type ReservationWithDetails = Reservation & {

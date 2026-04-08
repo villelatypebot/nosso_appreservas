@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
     LayoutDashboard, Calendar, Settings, Webhook, Bell, BarChart3,
     Users, ChevronLeft, ChevronRight, LogOut, Building2, Clock,
-    CalendarX, Home, UserCog, Menu, X
+    CalendarX, Home, UserCog, Menu, X, Palette
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import PushNotificationToggle from './PushNotificationToggle'
+import BrandMark from '@/components/branding/BrandMark'
 
 interface NavItem {
     icon: React.ReactNode
@@ -23,9 +23,22 @@ interface NavItem {
 interface AdminSidebarProps {
     unitId?: string
     unitName?: string
+    brandName?: string
+    shortName?: string
+    logoUrl?: string | null
+    primaryColor?: string
+    secondaryColor?: string
 }
 
-export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
+export default function AdminSidebar({
+    unitId,
+    unitName,
+    brandName = 'Full House',
+    shortName = 'Full House',
+    logoUrl = null,
+    primaryColor = '#F47920',
+    secondaryColor = '#C45E0A',
+}: AdminSidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
     const [collapsed, setCollapsed] = useState(false)
@@ -53,6 +66,8 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
 
     const baseItems: NavItem[] = [
         { icon: <LayoutDashboard size={18} />, label: 'Dashboard', href: '/admin/dashboard', group: 'Visão Geral' },
+        { icon: <Palette size={18} />, label: 'Personalização', href: '/admin/dashboard/personalizacao', group: 'Visão Geral' },
+        { icon: <Building2 size={18} />, label: 'Estabelecimentos', href: '/admin/dashboard/estabelecimentos', group: 'Visão Geral' },
         { icon: <UserCog size={18} />, label: 'Usuários', href: '/admin/dashboard/usuarios', group: 'Visão Geral' },
     ]
 
@@ -93,7 +108,7 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
 
                 <div style={{ minWidth: 0 }}>
                     <div className="admin-mobile-title">
-                        {unitName || 'Full House Admin'}
+                        {unitName || `${shortName} Admin`}
                     </div>
                     <div className="admin-mobile-subtitle">
                         {unitId ? 'Menu da unidade' : 'Menu principal'}
@@ -142,11 +157,19 @@ export default function AdminSidebar({ unitId, unitName }: AdminSidebarProps) {
                             router.push('/admin/dashboard')
                         }}
                     >
-                        <Image src="/fullhouse-logo.jpg" alt="Logo" width={36} height={36} style={{ objectFit: 'cover' }} />
+                        <BrandMark
+                            size={36}
+                            brandName={brandName}
+                            shortName={shortName}
+                            logoUrl={logoUrl}
+                            primaryColor={primaryColor}
+                            secondaryColor={secondaryColor}
+                            rounded={10}
+                        />
                     </motion.div>
                     {!collapsed && (
                         <div>
-                            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>Full House</div>
+                            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{shortName}</div>
                             {unitName && (
                                 <div style={{ fontSize: '11px', color: 'var(--brand-orange)', marginTop: '1px', fontWeight: 600 }}>{unitName}</div>
                             )}

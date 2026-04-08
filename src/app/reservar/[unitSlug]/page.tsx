@@ -2,6 +2,8 @@ import ReservationWizard from '@/components/reservation/ReservationWizard'
 import { MapPin, Phone, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { createClient } from '@/lib/supabase/server'
+import { getBrandSettings } from '@/lib/brand'
 
 interface Props {
     params: Promise<{ unitSlug: string }>
@@ -12,62 +14,25 @@ interface ReservationRules {
     maxPax: number
 }
 
-// Static unit data (will be replaced by Supabase fetch once connected)
-const UNIT_DATA: Record<string, {
-    id: string; name: string; slug: string; address: string; phone: string;
-}> = {
-    'boa-vista': {
-        id: 'unit-boa-vista',
-        name: 'Full House Boa Vista',
-        slug: 'boa-vista',
-        address: 'Av. Gov. Macedo Soares, 795 - Boa Vista, São Gonçalo - RJ, 24436-225',
-        phone: '(21) 96556-5686',
-    },
-    'colubande': {
-        id: 'unit-colubande',
-        name: 'Full House Colubandê',
-        slug: 'colubande',
-        address: 'Av. Jorn. Roberto Marinho, 1320 - Colubandê, São Gonçalo - RJ, 24451-715',
-        phone: '(21) 96556-5686',
-    },
-    'araruama': {
-        id: 'unit-araruama',
-        name: 'Full House Araruama',
-        slug: 'araruama',
-        address: 'R. Equador, 30 - Parque Hotel, Araruama - RJ, 28981-490',
-        phone: '(21) 96556-5686',
-    },
-    'niteroi': {
-        id: 'unit-niteroi',
-        name: 'Full House Niterói',
-        slug: 'niteroi',
-        address: 'R. Noronha Torrezão, 165 - Santa Rosa, Niterói - RJ, 24240-185',
-        phone: '(21) 96556-5686',
-    },
-}
-
 const DEFAULT_ENVIRONMENTS = [
-    { id: 'env-principal', name: 'Salão Principal', capacity: 80 },
-    { id: 'env-familia', name: 'Espaço Família', capacity: 40 },
+    { id: 'env-principal', name: 'Principal', capacity: 80 },
 ]
-
-export async function generateStaticParams() {
-    return Object.keys(UNIT_DATA).map((slug) => ({ unitSlug: slug }))
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { unitSlug } = await params
-    const unit = UNIT_DATA[unitSlug]
+    const supabase = await createClient()
+    const brand = await getBrandSettings(supabase)
+    const { data: unit } = await supabase.from('units').select('name').eq('slug', unitSlug).maybeSingle()
     return {
-        title: unit ? `Reservar — ${unit.name}` : 'Reservar',
-        description: `Faça sua reserva no ${unit?.name || 'Full House'}`,
+        title: unit ? `Reservar — ${unit.name}` : `Reservar — ${brand.shortName}`,
+        description: unit ? `Faça sua reserva em ${unit.name}` : brand.description,
     }
 }
 
 async function getUnitData(unitSlug: string) {
     try {
-        const { createClient } = await import('@/lib/supabase/server')
         const supabase = await createClient()
+        const brand = await getBrandSettings(supabase)
 
         const { data: unit, error: unitErr } = await supabase
             .from('units')
@@ -123,7 +88,7 @@ async function getUnitData(unitSlug: string) {
             maxPax,
         }
 
-        return { unit, environments: resolvedEnvironments, reservationRules }
+        return { brand, unit, environments: resolvedEnvironments, reservationRules }
     } catch (err) {
         console.error('getUnitData error:', err)
         return null
@@ -145,7 +110,7 @@ export default async function ReservarPage({ params }: Props) {
         )
     }
 
-    const { unit, environments, reservationRules } = result
+    const { brand, unit, environments, reservationRules } = result
 
     return (
         <main style={{ background: '#040201', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
@@ -184,7 +149,7 @@ export default async function ReservarPage({ params }: Props) {
                         transition: 'color 0.2s',
                     }}>
                         <ArrowLeft size={16} />
-                        Início
+                        {brand.shortName}
                     </Link>
                     <span style={{ color: 'rgba(255,255,255,0.2)' }}>/</span>
                     <span style={{
@@ -237,6 +202,7 @@ export default async function ReservarPage({ params }: Props) {
                         environments={environments}
                         reservationRules={reservationRules}
                         availableSlots={{}}
+                        reservationCodePrefix={brand.reservationCodePrefix}
                     />
                 </div>
             </div>

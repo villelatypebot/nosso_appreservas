@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { requireAdminAccess } from '@/lib/admin-auth'
 import { generateFollowUpSuggestions } from '@/lib/follow-up-generator'
 
 export async function POST(request: Request) {
     try {
+        const auth = await requireAdminAccess({ minRole: 'operator' })
+        if ('response' in auth) return auth.response
+
         const body = await request.json()
 
         const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : ''

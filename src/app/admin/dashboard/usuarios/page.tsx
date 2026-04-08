@@ -6,11 +6,34 @@ import {
     Mail, Lock, User, CheckCircle, AlertCircle, X, Edit2, Save
 } from 'lucide-react'
 
+type AdminRole = 'admin' | 'manager' | 'operator'
+
 interface AdminUser {
     id: string
     name: string
-    role: 'admin' | 'viewer'
+    role: AdminRole
     created_at: string
+}
+
+const ROLE_OPTIONS: Array<{
+    value: AdminRole
+    label: string
+    description: string
+}> = [
+    { value: 'admin', label: '🔑 Admin', description: 'Acesso total' },
+    { value: 'manager', label: '🛠️ Gerente', description: 'Opera reservas e configurações' },
+    { value: 'operator', label: '👁️ Operador', description: 'Opera reservas no dia a dia' },
+]
+
+function getRolePresentation(role: AdminRole) {
+    switch (role) {
+        case 'admin':
+            return { badgeClass: 'badge-confirmed', label: 'Admin', icon: <Shield size={11} />, gradient: 'linear-gradient(135deg, #F47920, #C45E0A)' }
+        case 'manager':
+            return { badgeClass: 'badge-pending', label: 'Gerente', icon: <User size={11} />, gradient: 'linear-gradient(135deg, #C9A84C, #9A7D2D)' }
+        default:
+            return { badgeClass: 'badge-seated', label: 'Operador', icon: <Eye size={11} />, gradient: 'linear-gradient(135deg, #5B8DEF, #3B6FCF)' }
+    }
 }
 
 export default function UsuariosPage() {
@@ -26,7 +49,7 @@ export default function UsuariosPage() {
     const [formName, setFormName] = useState('')
     const [formEmail, setFormEmail] = useState('')
     const [formPassword, setFormPassword] = useState('')
-    const [formRole, setFormRole] = useState<'admin' | 'viewer'>('viewer')
+    const [formRole, setFormRole] = useState<AdminRole>('operator')
 
     // Messages
     const [error, setError] = useState('')
@@ -79,7 +102,7 @@ export default function UsuariosPage() {
                 setFormName('')
                 setFormEmail('')
                 setFormPassword('')
-                setFormRole('viewer')
+                setFormRole('operator')
                 await loadUsers()
                 setTimeout(() => setSuccess(''), 4000)
             }
@@ -230,7 +253,7 @@ export default function UsuariosPage() {
                                 type="email"
                                 value={formEmail}
                                 onChange={e => setFormEmail(e.target.value)}
-                                placeholder="usuario@fullhouse.com.br"
+                                placeholder="usuario@empresa.com.br"
                                 required
                             />
                         </div>
@@ -257,11 +280,12 @@ export default function UsuariosPage() {
                             <select
                                 className="fh-input"
                                 value={formRole}
-                                onChange={e => setFormRole(e.target.value as 'admin' | 'viewer')}
+                                onChange={e => setFormRole(e.target.value as AdminRole)}
                                 style={{ cursor: 'pointer' }}
                             >
-                                <option value="admin">🔑 Admin — Acesso total</option>
-                                <option value="viewer">👁️ Visualizador — Somente leitura</option>
+                                {ROLE_OPTIONS.map((role) => (
+                                    <option key={role.value} value={role.value}>{role.label} — {role.description}</option>
+                                ))}
                             </select>
                         </div>
                         <div className="admin-form-actions" style={{ gridColumn: '1 / -1', justifyContent: 'flex-end', marginTop: '8px' }}>
@@ -314,6 +338,9 @@ export default function UsuariosPage() {
                             </thead>
                             <tbody>
                                 {users.map((user) => (
+                                    (() => {
+                                        const rolePresentation = getRolePresentation(user.role)
+                                        return (
                                     <tr key={user.id}>
                                         <td>
                                             {editingId === user.id ? (
@@ -327,9 +354,7 @@ export default function UsuariosPage() {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                     <div style={{
                                                         width: '32px', height: '32px', borderRadius: '50%',
-                                                        background: user.role === 'admin'
-                                                            ? 'linear-gradient(135deg, #F47920, #C45E0A)'
-                                                            : 'linear-gradient(135deg, #5B8DEF, #3B6FCF)',
+                                                        background: rolePresentation.gradient,
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                         fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
                                                     }}>
@@ -347,14 +372,15 @@ export default function UsuariosPage() {
                                                     onChange={e => setEditRole(e.target.value)}
                                                     style={{ padding: '4px 8px', fontSize: '13px', cursor: 'pointer', width: '180px' }}
                                                 >
-                                                    <option value="admin">🔑 Admin</option>
-                                                    <option value="viewer">👁️ Visualizador</option>
+                                                    {ROLE_OPTIONS.map((role) => (
+                                                        <option key={role.value} value={role.value}>{role.label}</option>
+                                                    ))}
                                                 </select>
                                             ) : (
-                                                <span className={`fh-badge ${user.role === 'admin' ? 'badge-confirmed' : 'badge-pending'}`}
+                                                <span className={`fh-badge ${rolePresentation.badgeClass}`}
                                                     style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                    {user.role === 'admin' ? <Shield size={11} /> : <Eye size={11} />}
-                                                    {user.role === 'admin' ? 'Admin' : 'Visualizador'}
+                                                    {rolePresentation.icon}
+                                                    {rolePresentation.label}
                                                 </span>
                                             )}
                                         </td>
@@ -398,6 +424,8 @@ export default function UsuariosPage() {
                                             )}
                                         </td>
                                     </tr>
+                                        )
+                                    })()
                                 ))}
                             </tbody>
                         </table>
@@ -418,14 +446,15 @@ export default function UsuariosPage() {
                                                 onChange={e => setEditRole(e.target.value)}
                                                 style={{ padding: '4px 8px', fontSize: '13px', cursor: 'pointer' }}
                                             >
-                                                <option value="admin">🔑 Admin</option>
-                                                <option value="viewer">👁️ Visualizador</option>
+                                                {ROLE_OPTIONS.map((role) => (
+                                                    <option key={role.value} value={role.value}>{role.label}</option>
+                                                ))}
                                             </select>
                                         ) : (
-                                            <span className={`fh-badge ${user.role === 'admin' ? 'badge-confirmed' : 'badge-pending'}`}
+                                            <span className={`fh-badge ${getRolePresentation(user.role).badgeClass}`}
                                                 style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                {user.role === 'admin' ? <Shield size={11} /> : <Eye size={11} />}
-                                                {user.role === 'admin' ? 'Admin' : 'Visualizador'}
+                                                {getRolePresentation(user.role).icon}
+                                                {getRolePresentation(user.role).label}
                                             </span>
                                         )}
                                     </div>
@@ -491,8 +520,12 @@ export default function UsuariosPage() {
                         <strong style={{ color: '#fff' }}>Admin:</strong> Acesso total — pode criar, editar e excluir reservas, configurações e usuários
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                        <Eye size={13} color="#C9A84C" />
-                        <strong style={{ color: '#fff' }}>Visualizador:</strong> Somente leitura — pode ver o painel e reservas, mas não alterá-las
+                        <User size={13} color="#C9A84C" />
+                        <strong style={{ color: '#fff' }}>Gerente:</strong> Opera a unidade, acompanha reservas e ajusta configurações
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                        <Eye size={13} color="#5B8DEF" />
+                        <strong style={{ color: '#fff' }}>Operador:</strong> Opera reservas do dia a dia e acompanha o painel operacional
                     </div>
                 </div>
             </div>
